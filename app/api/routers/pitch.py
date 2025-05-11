@@ -10,7 +10,7 @@ from app.config.prisma_client import get_prisma
 
 # Set up logging
 setup_logging()
-logger = logging.getLogger("pitch.api")
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -50,7 +50,7 @@ async def evaluate_pitch(
                     "title": pitch_data.title,
                     "description": pitch_data.description,
                     "filePath": file_path,
-                    "fileType": file_type,
+                    "fileType": pitch_data.file_type,
                     "status": PitchStatus.PENDING
                 }
             )
