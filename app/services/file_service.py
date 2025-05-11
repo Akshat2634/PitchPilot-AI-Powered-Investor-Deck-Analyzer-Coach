@@ -10,7 +10,7 @@ from app.config.logging_config import setup_logging
 
 # Setup logging
 setup_logging()
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("file.service")
 
 # Load environment variables
 load_dotenv()

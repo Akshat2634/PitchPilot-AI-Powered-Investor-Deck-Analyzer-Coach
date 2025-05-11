@@ -10,7 +10,7 @@ from app.config.prisma_client import get_prisma
 
 # Set up logging
 setup_logging()
-logger = logging.getLogger("app.api")
+logger = logging.getLogger("pitch.api")
 
 router = APIRouter()
 

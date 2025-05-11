@@ -62,4 +62,4 @@ def setup_logging():
         for logger_name in loggers:
             logger = logging.getLogger(logger_name)
             logger.setLevel(logging.DEBUG)
-            logger.propagate = True 
+            logger.propagate = False 
