@@ -38,7 +38,7 @@ def setup_logging():
     if not root_logger.handlers:
         # Create console handler
         console_handler = logging.StreamHandler(sys.stdout)
-        console_handler.setLevel(logging.DEBUG)
+        console_handler.setLevel(logging.INFO)
         
         # Create formatter
         formatter = ColoredFormatter(
@@ -48,7 +48,7 @@ def setup_logging():
         console_handler.setFormatter(formatter)
         
         # Configure root logger
-        root_logger.setLevel(logging.DEBUG)
+        root_logger.setLevel(logging.INFO)
         root_logger.addHandler(console_handler)
         
         # Configure specific loggers
@@ -61,5 +61,5 @@ def setup_logging():
         
         for logger_name in loggers:
             logger = logging.getLogger(logger_name)
-            logger.setLevel(logging.DEBUG)
+            logger.setLevel(logging.INFO)
             logger.propagate = False 
