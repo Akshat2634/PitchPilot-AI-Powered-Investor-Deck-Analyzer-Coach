@@ -1,0 +1,20 @@
+# Python
+__pycache__/
+*.py[cod]
+.env
+.venv/
+venv/
+ENV/
+
+# Node/Prisma
+node_modules/
+.prisma/
+
+# IDE
+.vscode/
+.idea/
+.DS_Store
+
+# Project specific
+*.log
+.pytest_cache/ 
