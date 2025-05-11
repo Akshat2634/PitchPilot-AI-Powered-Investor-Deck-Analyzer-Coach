@@ -12,16 +12,41 @@ from app.config.logging_config import setup_logging
 setup_logging()
 logger = logging.getLogger(__name__)
 
+# Load environment variables
 load_dotenv()
 
-# Initialize Supabase client
-supabase: Client = create_client(
-    os.getenv("SUPABASE_URL"),
-    os.getenv("SUPABASE_KEY")
-)
+# Initialize Supabase client with proper error handling
+SUPABASE_URL = os.getenv("SUPABASE_URL")
+SUPABASE_KEY = os.getenv("SUPABASE_KEY")
 BUCKET_NAME = os.getenv("SUPABASE_BUCKET_NAME")
 
-logger.info(f"Initialized Supabase client with bucket: {BUCKET_NAME}")
+# Validate required environment variables
+if not SUPABASE_URL or not SUPABASE_KEY or not BUCKET_NAME:
+    missing_vars = []
+    if not SUPABASE_URL:
+        logger.error("SUPABASE_URL is not set")
+        missing_vars.append("SUPABASE_URL")
+    if not SUPABASE_KEY:
+        logger.error("SUPABASE_KEY is not set")
+        missing_vars.append("SUPABASE_KEY")
+    if not BUCKET_NAME:
+        logger.error("SUPABASE_BUCKET_NAME is not set")
+        missing_vars.append("SUPABASE_BUCKET_NAME")
+    raise ValueError(f"Required environment variable(s) missing: {', '.join(missing_vars)}")
+
+# Initialize Supabase client
+try:
+    supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
+    logger.info("Supabase client initialized successfully")
+    
+    # Verify connection by getting session (lightweight operation)
+    session = supabase.auth.get_session()
+    logger.info("Supabase authentication session retrieved")
+    
+except Exception as e:
+    logger.error(f"Failed to initialize Supabase client: {str(e)}")
+    raise RuntimeError(f"Failed to initialize Supabase client: {str(e)}")
+
 
 class FileService:
     @staticmethod
