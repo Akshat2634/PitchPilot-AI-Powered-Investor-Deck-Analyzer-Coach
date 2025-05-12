@@ -65,3 +65,24 @@ class EvaluationResponse(BaseModel):
     pitch: PitchResponse
     feedback: Optional[FeedbackResponse] = None
     questions: Optional[QuestionsResponse] = None
+    
+class FeedbackModel(BaseModel):
+    """
+    Pydantic model for feedback data.
+    """
+    overall_feedback: str = Field(default="", description="Overall feedback on the pitch")
+    strengths: str = Field(default="", description="Strengths of the pitch")
+    weaknesses: str = Field(default="", description="Weaknesses of the pitch")
+    opportunities: str = Field(default="", description="Opportunities for the pitch")
+    threats: str = Field(default="", description="Threats to the pitch")
+    suggestions: str = Field(default="", description="Suggestions for improvement")
+    
+class ScoreModel(BaseModel):
+    """
+    Pydantic model for score data.
+    """
+    clarity: float = Field(default=0.0, description="Score for clarity of the pitch")
+    differentiation: float = Field(default=0.0, description="Score for differentiation from competitors")
+    traction: float = Field(default=0.0, description="Score for demonstrated traction")
+    scalability: float = Field(default=0.0, description="Score for scalability potential")
+    overall: float = Field(default=0.0, description="Overall score of the pitch")

@@ -1,7 +1,7 @@
 import logging
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.api.routers import pitch
+from app.api.routers import pitch_api
 from app.config.logging_config import setup_logging
 
 # Setup logging
@@ -30,7 +30,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(pitch.router)
+app.include_router(pitch_api.router)
 
 
 @app.get("/health")
