@@ -1,6 +1,6 @@
 # app/schemas/pitch.py
 from pydantic import BaseModel, Field
-from typing import Optional, Dict, List, Any, Union
+from typing import Optional, Dict, List, Any, Union, Literal
 from datetime import datetime
 from enum import Enum
 
@@ -15,6 +15,10 @@ class FileType(str, Enum):
     PPTX = "pptx"
     DOCX = "docx"
     TXT = "txt"
+    
+class Mode(str, Enum):
+    ANALYSIS = "analysis"
+    SCORE = "score"
 
 # Request Models
 class PitchCreate(BaseModel):
@@ -86,3 +90,10 @@ class ScoreModel(BaseModel):
     traction: float = Field(default=0.0, description="Score for demonstrated traction")
     scalability: float = Field(default=0.0, description="Score for scalability potential")
     overall: float = Field(default=0.0, description="Overall score of the pitch")
+    
+class PitchData(BaseModel):
+    """
+    Pydantic model for pitch data.
+    """
+    pitch_text: str = Field(default="", description="Extracted text of the the elevator pitch")
+    mode: Mode = Field(default=Mode.ANALYSIS, description="Mode of the pitch (analysis or score)")

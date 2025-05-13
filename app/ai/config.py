@@ -2,10 +2,12 @@ import logging
 import os
 from typing import Optional, Dict
 from dotenv import load_dotenv
+from pydantic_settings import BaseSettings
 from app.config.logging_config import setup_logging
 from typing_extensions import TypedDict
-from app.schemas.pitch_schema import FeedbackModel, ScoreModel
+from app.schemas.pitch_schema import FeedbackModel, ScoreModel, PitchData
 from openai import AsyncOpenAI
+from openai.types.chat import ChatCompletion
 import instructor
 
 # Set up logging
@@ -18,7 +20,20 @@ class ConfigError(Exception):
     """Custom exception for configuration errors"""
     pass
 
-def get_api_key() -> str:
+async def parse_openai_response(response: ChatCompletion) -> str:
+    """
+    Parse the content from an OpenAI ChatCompletion response.
+    
+    Args:
+        response (ChatCompletion): The response from OpenAI API
+        
+    Returns:
+        str: The extracted message content
+    """
+    return response.choices[0].message.content
+
+
+async def get_api_key() -> str:
     """
     Retrieve OpenAI API key from environment variables.
 
@@ -40,7 +55,7 @@ def get_api_key() -> str:
         raise ConfigError(f"Failed to retrieve OpenAI API key: {str(e)}")
 
 
-def get_openai_client() -> AsyncOpenAI:
+async def get_openai_client() -> AsyncOpenAI:
     """
     Create and configure a LangChain OpenAI chat model.
 
@@ -51,7 +66,7 @@ def get_openai_client() -> AsyncOpenAI:
         ConfigError: If API key cannot be loaded
     """
     try:
-        api_key = get_api_key()
+        api_key = await get_api_key()
         os.environ["OPENAI_API_KEY"] = api_key
         logger.info(f"OpenAI API key loaded successfully")
         client = instructor.from_openai(AsyncOpenAI(api_key=api_key))
@@ -67,6 +82,7 @@ class State(TypedDict):
     """
     Type definition for the state of the application.
     """
+    pitch_data: Optional[PitchData] = None
     feedback: Optional[FeedbackModel] = None
     score: Optional[ScoreModel] = None
     
