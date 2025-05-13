@@ -35,11 +35,6 @@ class PitchGraph:
         
         # Add edges 
         workflow.add_edge(START, supervisor_agent)
-        workflow.add_edge(supervisor_agent, pitch_analysis_agent)
-        workflow.add_edge(supervisor_agent, score_pitch_agent)
-        workflow.add_edge(pitch_analysis_agent, supervisor_agent)
-        workflow.add_edge(score_pitch_agent, supervisor_agent)
-        workflow.add_edge(supervisor_agent, END)
 
         self.workflow = workflow
         
