@@ -1,5 +1,5 @@
 import logging
-from app.config.logging_config import setup_logging
+from app.ai.config import setup_logging
 from app.ai.agents import pitch_analysis_agent, score_pitch_agent, supervisor_agent
 from app.ai.config import State
 from langgraph.graph import StateGraph, START, END , MessagesState
@@ -34,7 +34,7 @@ class PitchGraph:
         workflow.add_node(score_pitch_agent)
         
         # Add edges 
-        workflow.add_edge(START, supervisor_agent)
+        workflow.add_edge(START, "supervisor_agent")
 
         self.workflow = workflow
         
@@ -72,3 +72,12 @@ class PitchGraph:
         except Exception as e:
             logger.error(f"Error processing pitch: {str(e)}")
             raise ValueError(f"Failed to process pitch: {str(e)}")
+
+if __name__ == "__main__":
+    import asyncio
+    pitch_graph = PitchGraph()
+    asyncio.run(pitch_graph.create_workflow())
+    asyncio.run(pitch_graph.compile_workflow())
+    pitch_data = PitchData(pitch_text="Hi how are you?")
+    evaluation_response = asyncio.run(pitch_graph.analyze_pitch(pitch_data))
+    print(evaluation_response)

@@ -21,21 +21,6 @@ logger = logging.getLogger(__name__)
 
 # Supervisor Agent - Orchestrates the pitch evaluation workflow
 async def supervisor_agent(state: MessagesState) -> Command[Literal["pitch_analysis_agent", "score_pitch_agent", "END"]]:
-    """
-    Supervisor agent that orchestrates the pitch evaluation workflow.
-    
-    This agent determines which specialized agent to call next based on the current state
-    of the evaluation process. It ensures that agents are called in the correct sequence
-    
-    Args:
-        state (State): Current application state
-        
-    Returns:
-        Command: Instruction on which agent to call next or to end the process  
-        
-    Raises:
-        ValueError: If there's an error determining the next step
-    """
     logger.info("Supervisor agent determining next step")
     
     client = await get_openai_client()
@@ -68,8 +53,8 @@ async def supervisor_agent(state: MessagesState) -> Command[Literal["pitch_analy
     response_data = NextAgentResponse.model_validate_json(parsed_response)
     
     return Command(
-        goto=response_data.agent_name,
-        update={"messages": [AIMessage(content=response)]}
+        goto=response_data.agent_name
+        # update={"messages": [AIMessage(content=response)]}
     )
         
 
