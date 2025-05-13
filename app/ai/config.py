@@ -9,6 +9,8 @@ from app.schemas.pitch_schema import FeedbackModel, ScoreModel, PitchData
 from openai import AsyncOpenAI
 from openai.types.chat import ChatCompletion
 import instructor
+from langgraph.graph import MessagesState
+
 
 # Set up logging
 setup_logging()
@@ -78,14 +80,13 @@ async def get_openai_client() -> AsyncOpenAI:
 
 
 
-class State(TypedDict):
+class State(MessagesState):
     """
     Type definition for the state of the application.
     """
     pitch_data: Optional[PitchData] = None
     feedback: Optional[FeedbackModel] = None
     score: Optional[ScoreModel] = None
-    
 
 
 # AI-Powered Investor Pitch Analyzer & Coach

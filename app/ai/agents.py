@@ -1,4 +1,5 @@
 import os
+from typing import Literal
 from app.ai.config import get_openai_client, State
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
@@ -6,15 +7,74 @@ from app.config.logging_config import setup_logging
 import logging
 from app.ai.config import get_openai_client, parse_openai_response
 from dotenv import load_dotenv
-from app.schemas.pitch_schema import FeedbackModel, ScoreModel
+from app.schemas.pitch_schema import FeedbackModel, ScoreModel, NextAgentResponse
+from langgraph.types import Command
+from langgraph.graph import MessagesState
+from langchain_core.messages import AIMessage
+
+
 load_dotenv()
 
 # Set up logging
 setup_logging()
 logger = logging.getLogger(__name__)
 
+# Supervisor Agent - Orchestrates the pitch evaluation workflow
+async def supervisor_agent(state: MessagesState) -> Command[Literal["pitch_analysis_agent", "score_pitch_agent", "END"]]:
+    """
+    Supervisor agent that orchestrates the pitch evaluation workflow.
+    
+    This agent determines which specialized agent to call next based on the current state
+    of the evaluation process. It ensures that agents are called in the correct sequence
+    
+    Args:
+        state (State): Current application state
+        
+    Returns:
+        Command: Instruction on which agent to call next or to end the process  
+        
+    Raises:
+        ValueError: If there's an error determining the next step
+    """
+    logger.info("Supervisor agent determining next step")
+    
+    client = await get_openai_client()
+    
+    prompt = ChatPromptTemplate.from_template(
+        """
+        [IDENTITY]
+        You are a workflow supervisor agent responsible for orchestrating the pitch evaluation process by calling the appropriate agents.
 
-async def pitch_analysis_agent(state: State) -> State:
+        [TASK]
+        Determine which specialized agent to call next in the pitch evaluation workflow based on the user's request.
+        
+        [WORKFLOW LOGIC]
+        - If user wants to analyze the pitch, call "pitch_analysis_agent"
+        - If user wants to score the pitch, call "score_pitch_agent"
+        
+        [OUTPUT FORMAT]
+        Return a JSON with these fields:
+        - agent_name: The next agent to call ("pitch_analysis_agent", "score_pitch_agent", or "END")
+        """
+    )
+    
+    response = await client.chat.completions.create(
+        model=os.getenv("OPENAI_MODEL"),
+        messages= [{"role": "developer", "content": prompt}],
+        response_format=NextAgentResponse
+    )
+    
+    parsed_response = await parse_openai_response(response)
+    response_data = NextAgentResponse.model_validate_json(parsed_response)
+    
+    return Command(
+        goto=response_data.agent_name,
+        update={"messages": [AIMessage(content=response)]}
+    )
+        
+
+# Pitch Analysis Agent - Generates structured feedback  
+async def pitch_analysis_agent(state: MessagesState) -> Command[Literal["supervisor"]]:
     """
     Analyze pitch content and generate structured feedback and scoring.
     
@@ -36,7 +96,6 @@ async def pitch_analysis_agent(state: State) -> State:
         ValueError: If pitch_data is missing in the state
         RuntimeError: If analysis process fails
     """
-    # Get the OpenAI client with instructor integration
     logger.info("Starting pitch analysis agent")
     try:
         prompt = ChatPromptTemplate.from_template(
@@ -53,7 +112,7 @@ async def pitch_analysis_agent(state: State) -> State:
             3. Traction: How convincingly does the pitch demonstrate early user/customer validation, revenue, or growth metrics? (Score 0–10)
             4. Scalability: How well does the pitch show the potential to expand market reach, grow margins, and leverage network effects? (Score 0–10)
             5. Market Potential: How well-defined and sizable is the Total Addressable Market (TAM)? (Score 0–10)
-            6. Team Strength: How effectively does the pitch convey the founding team’s domain expertise and execution capability? (Score 0–10)
+            6. Team Strength: How effectively does the pitch convey the founding team's domain expertise and execution capability? (Score 0–10)
             
             [INPUT]
             - ELEVATOR PITCH CONTENT: {pitch_text}
@@ -82,14 +141,20 @@ async def pitch_analysis_agent(state: State) -> State:
         )
         response = await parse_openai_response(result)
         feedback = FeedbackModel.model_validate_json(response)
-        state.feedback = feedback
-        return state
+        
+        # Update the state with the feedback and return a Command to go to supervisor
+        return Command(
+            goto="supervisor",
+            update={"feedback": feedback,
+                    "messages": [AIMessage(content=response)] }
+        )
     except Exception as e:
         logger.error(f"Error in pitch analysis agent: {str(e)}")
         raise ValueError(f"Error in pitch analysis agent: {str(e)}")
     
     
-async def score_pitch_agent(state: State) -> State:
+# Score Pitch Agent - Generates structured scoring
+async def score_pitch_agent(state: MessagesState) -> Command[Literal["supervisor"]]:
     """
     Analyze pitch content and generate structured scoring.
     
@@ -116,7 +181,7 @@ async def score_pitch_agent(state: State) -> State:
             You are an expert in the art of scoring pitches and have a deep understanding of the evaluation criteria and scoring rubrics of leading venture capital firms.
 
             [TASK]
-            Given the founder's pitch and the feedback, produce a structured scoring rubric that quantifies and justifies the pitch's strengths across key dimensions.
+            Given the founder's pitch, produce a structured scoring rubric that quantifies and justifies the pitch's strengths across key dimensions.
 
             [EVALUATION CRITERIA]
             1. Clarity: How clearly the pitch conveys the problem, solution, and unique value proposition.
@@ -128,7 +193,6 @@ async def score_pitch_agent(state: State) -> State:
 
             [INPUT]
             - PITCH_TEXT: {pitch_text}
-            - PITCH FEEDBACK: {feedback}    
 
             [OUTPUT FORMAT]
             Provide a structured scoring analysis with these sections:
@@ -147,13 +211,17 @@ async def score_pitch_agent(state: State) -> State:
             response_format=ScoreModel,
             temperature=0.2,
             messages=[
-                {"role": "developer", "content": prompt.format(pitch_text=state.pitch_data.pitch_text, feedback=state.feedback)}
+                {"role": "developer", "content": prompt.format(pitch_text=state.pitch_data.pitch_text)}
             ]
         )
         response = await parse_openai_response(result)
         score = ScoreModel.model_validate_json(response)
-        state.score = score
-        return state
+        
+        return Command(
+            goto="supervisor",
+            update={"score": score,
+                    "messages": [AIMessage(content=response)]}
+        )
     except Exception as e:
         logger.error(f"Error in score pitch agent: {str(e)}")
         raise ValueError(f"Error in score pitch agent: {str(e)}")

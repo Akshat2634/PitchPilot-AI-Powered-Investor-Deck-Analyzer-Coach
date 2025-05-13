@@ -15,10 +15,6 @@ class FileType(str, Enum):
     PPTX = "pptx"
     DOCX = "docx"
     TXT = "txt"
-    
-class Mode(str, Enum):
-    ANALYSIS = "analysis"
-    SCORE = "score"
 
 # Request Models
 class PitchCreate(BaseModel):
@@ -96,4 +92,6 @@ class PitchData(BaseModel):
     Pydantic model for pitch data.
     """
     pitch_text: str = Field(default="", description="Extracted text of the the elevator pitch")
-    mode: Mode = Field(default=Mode.ANALYSIS, description="Mode of the pitch (analysis or score)")
+    
+class NextAgentResponse(BaseModel):
+    agent_name: str = Field(default="", description="The name of the next agent to call (pitch_analysis_agent or score_pitch_agent)")
