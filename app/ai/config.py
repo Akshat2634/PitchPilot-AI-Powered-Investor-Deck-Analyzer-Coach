@@ -79,16 +79,6 @@ async def get_openai_client() -> AsyncOpenAI:
 
 
 
-
-class State(MessagesState):
-    """
-    Type definition for the state of the application.
-    """
-    pitch_data: Optional[PitchData] = None
-    feedback: Optional[FeedbackModel] = None
-    score: Optional[ScoreModel] = None
-
-
 # AI-Powered Investor Pitch Analyzer & Coach
 # Concept: Founders upload pitch decks or scripts, and the system provides feedback using LLM-based reasoning.
 # Unique Angles: • LanGraph to score across dimensions: clarity, differentiation, traction, scalability. • Upload slide decks or transcripts → Convert to text (OCR or parsing). • Multi-node LangGraph to: • Evaluate against YC/VC best practices • Suggest slide-level edits - QnA

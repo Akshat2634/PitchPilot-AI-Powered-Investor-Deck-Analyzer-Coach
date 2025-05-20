@@ -3,7 +3,7 @@ from pydantic import BaseModel, Field
 from typing import Optional, Dict, List, Any, Union, Literal
 from datetime import datetime
 from enum import Enum
-
+from langgraph.graph import MessagesState
 class PitchStatus(str, Enum):
     PENDING = "pending"
     PROCESSING = "processing"
@@ -95,3 +95,15 @@ class PitchData(BaseModel):
     
 class NextAgentResponse(BaseModel):
     agent_name: str = Field(default="", description="The name of the next agent to call (pitch_analysis_agent or score_pitch_agent)")
+
+
+class PitchAgentState(MessagesState):
+    """
+    Type definition for the state of the application.
+    Must define messages and remaining_steps keys as required by LangGraph.
+    """
+    messages: List[Dict[str, str]] = Field(default_factory=list)
+    remaining_steps: List[str] = Field(default_factory=list)
+    pitch_data: Optional[PitchData] = None
+    feedback: Optional[FeedbackModel] = None 
+    score: Optional[ScoreModel] = None

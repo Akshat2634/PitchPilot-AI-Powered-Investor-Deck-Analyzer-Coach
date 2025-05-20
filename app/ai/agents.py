@@ -1,7 +1,6 @@
 import os
-from typing import Literal
-from app.ai.config import get_openai_client, State
-from langchain_core.prompts import ChatPromptTemplate
+from typing import Literal, Dict, Any, List
+from langchain_core.prompts import ChatPromptTemplate, PromptTemplate, SystemMessagePromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 from app.config.logging_config import setup_logging
 import logging
@@ -10,7 +9,11 @@ from dotenv import load_dotenv
 from app.schemas.pitch_schema import FeedbackModel, ScoreModel, NextAgentResponse
 from langgraph.types import Command
 from langgraph.graph import MessagesState
-from langchain_core.messages import AIMessage
+from langchain_core.messages import AIMessage, convert_to_messages, HumanMessage, SystemMessage
+from langgraph.prebuilt import create_react_agent
+from langgraph_supervisor import create_supervisor
+from langchain.chat_models import init_chat_model
+from langgraph.checkpoint.memory import InMemorySaver
 
 
 load_dotenv()
@@ -19,194 +22,156 @@ load_dotenv()
 setup_logging()
 logger = logging.getLogger(__name__)
 
-# Supervisor Agent - Orchestrates the pitch evaluation workflow
-async def supervisor_agent(state: MessagesState) -> Command[Literal["pitch_analysis_agent", "score_pitch_agent", "END"]]:
-    logger.info("Supervisor agent determining next step")
-    
-    client = await get_openai_client()
-    
-    prompt = ChatPromptTemplate.from_template(
-        """
-        [IDENTITY]
-        You are a workflow supervisor agent responsible for orchestrating the pitch evaluation process by calling the appropriate agents.
+model = os.getenv("OPENAI_MODEL", "openai:gpt-4o")
 
-        [TASK]
-        Determine which specialized agent to call next in the pitch evaluation workflow based on the user's request.
-        
-        [WORKFLOW LOGIC]
-        - If user wants to analyze the pitch, call "pitch_analysis_agent"
-        - If user wants to score the pitch, call "score_pitch_agent"
-        
-        [OUTPUT FORMAT]
-        Return a JSON with these fields:
-        - agent_name: The next agent to call ("pitch_analysis_agent", "score_pitch_agent", or "END")
-        """
-    )
-    
-    response = await client.chat.completions.create(
-        model=os.getenv("OPENAI_MODEL"),
-        messages= [{"role": "developer", "content": prompt}],
-        response_format=NextAgentResponse
-    )
-    
-    parsed_response = await parse_openai_response(response)
-    response_data = NextAgentResponse.model_validate_json(parsed_response)
-    
-    return Command(
-        goto=response_data.agent_name
-        # update={"messages": [AIMessage(content=response)]}
-    )
-        
+# Create a checkpointer for persistence
+checkpointer = InMemorySaver()
 
-# Pitch Analysis Agent - Generates structured feedback  
-async def pitch_analysis_agent(state: MessagesState) -> Command[Literal["supervisor"]]:
+# Define a custom state class
+class PitchAgentState(MessagesState):
+    """State for the pitch analysis agent."""
+    pitch_text: str = ""
+
+# Create a tool to process the pitch
+def analyze_pitch_content(pitch_text: str) -> Dict[str, Any]:
     """
-    Analyze pitch content and generate structured feedback and scoring.
-    
-    This agent processes the pitch data from the state and leverages OpenAI's language models
-    to evaluate the pitch quality. It populates the state's feedback and score fields with
-    detailed assessment information.
-    
-    The function works with the State TypedDict defined in config.py, which contains:
-    - pitch_data: Extracted text from the uploaded pitch
-    - feedback: Structured feedback (strengths, weaknesses, suggestions)
+    Analyze the pitch content provided.
     
     Args:
-        state (State): Current application state with pitch_data field populated
+        pitch_text: The pitch text to analyze
         
     Returns:
-        State: Updated state with feedback and score fields populated
-        
-    Raises:
-        ValueError: If pitch_data is missing in the state
-        RuntimeError: If analysis process fails
+        Analysis of the pitch
     """
-    logger.info("Starting pitch analysis agent")
-    try:
-        prompt = ChatPromptTemplate.from_template(
-            """
-            [IDENTITY]
-            You are a world‑class pitch analyst, steeped in the frameworks and best practices of leading venture capital firms—Y Combinator, Sequoia Capital, Andreessen Horowitz (a16z), Benchmark, Accel, and Greylock Ventures.
+    return {"result": f"Received pitch text: {pitch_text}"}
 
-            [TASK]
-            Assess the following pitch content with the rigor of a YC partner and an a16z investor. Apply the evaluation standards, scoring rubrics, and qualitative insights these firms use when vetting founders.
+# Create agents with simplified prompts
+pitch_analysis_agent = create_react_agent(
+    model=init_chat_model(model),
+    tools=[analyze_pitch_content],
+    prompt=(
+        "You are a world-class pitch analyst with expertise in venture capital evaluation frameworks.\n\n"
+        "Analyze pitches based on clarity, differentiation, traction, scalability, market potential, and team strength.\n\n"
+        "Provide structured feedback with overall assessment, strengths, weaknesses, opportunities, threats, and suggestions."
+    ),
+    name="pitch_analysis_agent"
+)
 
-            [EVALUATION CRITERIA]
-            1. Clarity: How clearly does the pitch articulate the problem, solution, and unique value proposition? (Score 0–10)
-            2. Differentiation: How distinct and defensible is the offering compared to direct and indirect competitors? (Score 0–10)
-            3. Traction: How convincingly does the pitch demonstrate early user/customer validation, revenue, or growth metrics? (Score 0–10)
-            4. Scalability: How well does the pitch show the potential to expand market reach, grow margins, and leverage network effects? (Score 0–10)
-            5. Market Potential: How well-defined and sizable is the Total Addressable Market (TAM)? (Score 0–10)
-            6. Team Strength: How effectively does the pitch convey the founding team's domain expertise and execution capability? (Score 0–10)
-            
-            [INPUT]
-            - ELEVATOR PITCH CONTENT: {pitch_text}
+score_pitch_agent = create_react_agent(
+    model=init_chat_model(model),
+    tools=[analyze_pitch_content],
+    prompt=(
+        "You are a world-class pitch scoring expert with deep understanding of venture capital evaluation frameworks.\n\n"
+        "Score pitches on criteria including clarity, differentiation, traction, scalability, and market potential.\n\n"
+        "Provide a structured scoring analysis with numerical scores from 0-10 for each category."
+    ),
+    name="score_pitch_agent"
+)
 
-            [OUTPUT FORMAT]
-            Provide a structured output with these sections:
-
-            1. **Overall Feedback:** A concise summary and rationale of the pitch.
-            2. **Strengths:** Highlight the pitch's strongest elements, citing examples.
-            3. **Weaknesses:** Pinpoint key gaps or shortcomings, with context.
-            4. **Opportunities:** Identify untapped angles or areas ripe for expansion.
-            5. **Threats:** Surface potential risks or competitive headwinds not adequately addressed.
-            6. **Suggestions for improvement:** Specific, prioritized steps to elevate the pitch, referencing YC/a16z playbooks where relevant.
-            
-            """
+def pretty_print_message(message, indent=False):
+    """Print a single message in a pretty format."""
+    if hasattr(message, "pretty_repr"):
+        pretty_message = message.pretty_repr(html=True)
+    else:
+        pretty_message = f"{message.get('role', 'unknown')}: {message.get('content', '')}"
     
-    )
-        client = await get_openai_client()
-        result = client.chat.completions.create(
-            model=os.getenv("OPENAI_MODEL"),
-            response_format=FeedbackModel,
-            temperature=0.2,
-            messages=[
-                {"role": "developer", "content": prompt.format(pitch_text=state.pitch_data.pitch_text)}
-            ]
-        )
-        response = await parse_openai_response(result)
-        feedback = FeedbackModel.model_validate_json(response)
-        
-        # Update the state with the feedback and return a Command to go to supervisor
-        return Command(
-            goto="supervisor",
-            update={"feedback": feedback,
-                    "messages": [AIMessage(content=response)] }
-        )
-    except Exception as e:
-        logger.error(f"Error in pitch analysis agent: {str(e)}")
-        raise ValueError(f"Error in pitch analysis agent: {str(e)}")
-    
-    
-# Score Pitch Agent - Generates structured scoring
-async def score_pitch_agent(state: MessagesState) -> Command[Literal["supervisor"]]:
+    if not indent:
+        print(pretty_message)
+        return
+
+    indented = "\n".join("\t" + c for c in pretty_message.split("\n"))
+    print(indented)
+
+
+def pretty_print_messages(update, last_message=False):
+    """Print messages from chunks in a readable format."""
+    is_subgraph = False
+    if isinstance(update, tuple):
+        ns, update = update
+        # skip parent graph updates in the printouts
+        if len(ns) == 0:
+            return
+
+        graph_id = ns[-1].split(":")[0]
+        print(f"Update from subgraph {graph_id}:")
+        print("\n")
+        is_subgraph = True
+
+    for node_name, node_update in update.items():
+        update_label = f"Update from node {node_name}:"
+        if is_subgraph:
+            update_label = "\t" + update_label
+
+        print(update_label)
+        print("\n")
+
+        if "messages" in node_update:
+            messages = convert_to_messages(node_update["messages"])
+            if last_message:
+                messages = messages[-1:]
+
+            for m in messages:
+                pretty_print_message(m, indent=is_subgraph)
+            print("\n")
+
+# Create supervisor with proper configuration
+supervisor = create_supervisor(
+    model=init_chat_model(model),
+    agents=[pitch_analysis_agent, score_pitch_agent],
+    prompt=(
+        "You are a supervisor orchestrating a pitch evaluation workflow:\n"
+        "- Use the pitch_analysis_agent to analyze and review startup pitches.\n"
+        "- Use the score_pitch_agent to assign scores to pitches based on defined criteria.\n"
+        "Assign work to only one agent at a time, never in parallel.\n"
+        "Do not perform any analysis or scoring yourself—route tasks to the right agent.\n"
+        "After each agent completes, review and decide the next step, until the process is done."
+    ),
+    add_handoff_back_messages=True,
+    output_mode="full_history"
+).compile()
+
+# Example usage
+def analyze_pitch(pitch_text: str, thread_id: str = None):
     """
-    Analyze pitch content and generate structured scoring.
-    
-    This agent processes the pitch data from the state and leverages OpenAI's language models
-    to evaluate the pitch quality. It populates the state's score fields with
-    detailed assessment information.    
+    Analyze a pitch using the supervisor and worker agents.
     
     Args:
-        state (State): Current application state with pitch_data field populated
-        
+        pitch_text: The pitch text to analyze
+        thread_id: Optional thread ID for continuing conversations
+    
     Returns:
-        State: Updated state with score fields populated    
-
-    Raises:
-        ValueError: If pitch_data is missing in the state
-        RuntimeError: If analysis process fails
+        The final message history
     """
-    logger.info("Starting score pitch agent")
+    # Create the input state
+    input_state = {
+        "messages": [
+            {"role": "user", "content": f"Please analyze and score this pitch: {pitch_text}"}
+        ]
+    }
+    
+    # Create config with thread_id if provided
+    config = {}
+    if thread_id:
+        config["configurable"] = {"thread_id": thread_id}
+    
+    # Stream the results
+    last_chunk = None
     try:
-        prompt = ChatPromptTemplate.from_template(
-            """
-            [IDENTITY]
-            You are a world-class pitch analyst, leveraging the rigorous vetting frameworks of top venture firms—including Y Combinator, Sequoia Capital, Andreessen Horowitz (a16z), Benchmark, Accel, and Greylock Ventures.
-            You are an expert in the art of scoring pitches and have a deep understanding of the evaluation criteria and scoring rubrics of leading venture capital firms.
-
-            [TASK]
-            Given the founder's pitch, produce a structured scoring rubric that quantifies and justifies the pitch's strengths across key dimensions.
-
-            [EVALUATION CRITERIA]
-            1. Clarity: How clearly the pitch conveys the problem, solution, and unique value proposition.
-            2. Differentiation: How defensibly the offering stands out against competitors.
-            3. Traction: The strength of demonstrated user/customer validation, revenue, or engagement metrics.
-            4. Scalability: Evidence of potential to expand market reach, improve margins, and leverage network effects.
-            5. Market Potential: The size and potential of the Total Addressable Market.
-            6. Team Strength: The quality and experience of the founding team.
-
-            [INPUT]
-            - PITCH_TEXT: {pitch_text}
-
-            [OUTPUT FORMAT]
-            Provide a structured scoring analysis with these sections:
-
-            1. Clarity: Score from 0 to 10 
-            2. Differentiation: Score from 0 to 10 
-            3. Traction: Score from 0 to 10 
-            4. Scalability: Score from 0 to 10 
-            5. Overall: Score from 0 to 10 
-            """
-        )
-        
-        client = await get_openai_client()
-        result = client.chat.completions.create(
-            model=os.getenv("OPENAI_MODEL"),
-            response_format=ScoreModel,
-            temperature=0.2,
-            messages=[
-                {"role": "developer", "content": prompt.format(pitch_text=state.pitch_data.pitch_text)}
-            ]
-        )
-        response = await parse_openai_response(result)
-        score = ScoreModel.model_validate_json(response)
-        
-        return Command(
-            goto="supervisor",
-            update={"score": score,
-                    "messages": [AIMessage(content=response)]}
-        )
+        for chunk in supervisor.stream(input_state, config):
+            pretty_print_messages(chunk, last_message=True)
+            last_chunk = chunk
     except Exception as e:
-        logger.error(f"Error in score pitch agent: {str(e)}")
-        raise ValueError(f"Error in score pitch agent: {str(e)}")
+        logger.error(f"Error during pitch analysis: {e}")
+        raise
+    
+    # Return the final message history if available
+    if last_chunk and "supervisor" in last_chunk and "messages" in last_chunk["supervisor"]:
+        return last_chunk["supervisor"]["messages"]
+    return []
+
+# Example pitch text
+example_pitch = "Our startup helps e-commerce brands improve conversion rates by using AI to generate personalized product videos at scale. We've onboarded 20 paying customers and achieved 30% MoM revenue growth since launch. The founding team has prior exits and deep e-commerce experience."
+
+# Run an example analysis
+if __name__ == "__main__":
+    final_message_history = analyze_pitch(example_pitch, thread_id="example_pitch_1")
