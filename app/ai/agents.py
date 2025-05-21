@@ -1,19 +1,13 @@
 import os
-from typing import Literal, Dict, Any, List
-from langchain_core.prompts import ChatPromptTemplate, PromptTemplate, SystemMessagePromptTemplate
-from langchain_core.output_parsers import StrOutputParser
+from app.ai.pitch_analysis_tool import analyze_pitch_content, pretty_print_messages
 from app.config.logging_config import setup_logging
 import logging
-from app.ai.config import get_openai_client, parse_openai_response
 from dotenv import load_dotenv
-from app.schemas.pitch_schema import FeedbackModel, ScoreModel, NextAgentResponse
-from langgraph.types import Command
-from langgraph.graph import MessagesState
-from langchain_core.messages import AIMessage, convert_to_messages, HumanMessage, SystemMessage
 from langgraph.prebuilt import create_react_agent
 from langgraph_supervisor import create_supervisor
 from langchain.chat_models import init_chat_model
 from langgraph.checkpoint.memory import InMemorySaver
+import uuid
 
 
 load_dotenv()
@@ -22,28 +16,10 @@ load_dotenv()
 setup_logging()
 logger = logging.getLogger(__name__)
 
-model = os.getenv("OPENAI_MODEL", "openai:gpt-4o")
+model = os.getenv("OPENAI_MODEL")
 
 # Create a checkpointer for persistence
 checkpointer = InMemorySaver()
-
-# Define a custom state class
-class PitchAgentState(MessagesState):
-    """State for the pitch analysis agent."""
-    pitch_text: str = ""
-
-# Create a tool to process the pitch
-def analyze_pitch_content(pitch_text: str) -> Dict[str, Any]:
-    """
-    Analyze the pitch content provided.
-    
-    Args:
-        pitch_text: The pitch text to analyze
-        
-    Returns:
-        Analysis of the pitch
-    """
-    return {"result": f"Received pitch text: {pitch_text}"}
 
 # Create agents with simplified prompts
 pitch_analysis_agent = create_react_agent(
@@ -54,7 +30,8 @@ pitch_analysis_agent = create_react_agent(
         "Analyze pitches based on clarity, differentiation, traction, scalability, market potential, and team strength.\n\n"
         "Provide structured feedback with overall assessment, strengths, weaknesses, opportunities, threats, and suggestions."
     ),
-    name="pitch_analysis_agent"
+    name="pitch_analysis_agent",
+    checkpointer=checkpointer
 )
 
 score_pitch_agent = create_react_agent(
@@ -67,52 +44,6 @@ score_pitch_agent = create_react_agent(
     ),
     name="score_pitch_agent"
 )
-
-def pretty_print_message(message, indent=False):
-    """Print a single message in a pretty format."""
-    if hasattr(message, "pretty_repr"):
-        pretty_message = message.pretty_repr(html=True)
-    else:
-        pretty_message = f"{message.get('role', 'unknown')}: {message.get('content', '')}"
-    
-    if not indent:
-        print(pretty_message)
-        return
-
-    indented = "\n".join("\t" + c for c in pretty_message.split("\n"))
-    print(indented)
-
-
-def pretty_print_messages(update, last_message=False):
-    """Print messages from chunks in a readable format."""
-    is_subgraph = False
-    if isinstance(update, tuple):
-        ns, update = update
-        # skip parent graph updates in the printouts
-        if len(ns) == 0:
-            return
-
-        graph_id = ns[-1].split(":")[0]
-        print(f"Update from subgraph {graph_id}:")
-        print("\n")
-        is_subgraph = True
-
-    for node_name, node_update in update.items():
-        update_label = f"Update from node {node_name}:"
-        if is_subgraph:
-            update_label = "\t" + update_label
-
-        print(update_label)
-        print("\n")
-
-        if "messages" in node_update:
-            messages = convert_to_messages(node_update["messages"])
-            if last_message:
-                messages = messages[-1:]
-
-            for m in messages:
-                pretty_print_message(m, indent=is_subgraph)
-            print("\n")
 
 # Create supervisor with proper configuration
 supervisor = create_supervisor(
@@ -127,7 +58,9 @@ supervisor = create_supervisor(
         "After each agent completes, review and decide the next step, until the process is done."
     ),
     add_handoff_back_messages=True,
-    output_mode="full_history"
+    output_mode="full_history",
+    supervisor_name="supervisor"
+
 ).compile()
 
 # Example usage
@@ -174,4 +107,4 @@ example_pitch = "Our startup helps e-commerce brands improve conversion rates by
 
 # Run an example analysis
 if __name__ == "__main__":
-    final_message_history = analyze_pitch(example_pitch, thread_id="example_pitch_1")
+    final_message_history = analyze_pitch(example_pitch, thread_id=str(uuid.uuid4()))
