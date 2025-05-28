@@ -3,6 +3,8 @@ from pydantic import BaseModel, Field
 from typing import Optional, Dict, List, Any, Union, Literal
 from datetime import datetime
 from enum import Enum
+from typing_extensions import TypedDict
+from langgraph.graph import MessagesState
 
 class PitchStatus(str, Enum):
     PENDING = "pending"
@@ -61,10 +63,7 @@ class QuestionsResponse(BaseModel):
     updated_at: datetime
 
 # Combined Responses
-class EvaluationResponse(BaseModel):
-    pitch: PitchResponse
-    feedback: Optional[FeedbackResponse] = None
-    questions: Optional[QuestionsResponse] = None
+
     
 class FeedbackModel(BaseModel):
     """
@@ -92,6 +91,33 @@ class PitchData(BaseModel):
     Pydantic model for pitch data.
     """
     pitch_text: str = Field(default="", description="Extracted text of the the elevator pitch")
+    action: Literal["analysis", "scoring", "complete"] = Field(..., description="Requested action: analysis, scoring, or complete")
     
 class NextAgentResponse(BaseModel):
     agent_name: str = Field(default="", description="The name of the next agent to call (pitch_analysis_agent or score_pitch_agent)")
+
+class WorkflowClassifier(BaseModel):
+    """
+    Pydantic model for workflow classification.
+    """
+    workflow_stage: Literal["analysis", "scoring", "complete"] = Field(
+        ...,
+        description="Classify the current workflow stage: 'analysis' if feedback is needed, 'scoring' if score is needed, 'complete' if the workflow is complete"
+    )
+
+
+class EvaluationResponse(BaseModel):
+    pitch: Optional[PitchData] = None
+    feedback: Optional[FeedbackModel] = None
+    score: Optional[ScoreModel] = None
+    
+    
+class State(MessagesState):
+    """
+    Type definition for the state of the application.
+    """
+    pitch_data: Optional[PitchData] = None
+    feedback: Optional[FeedbackModel] = None
+    score: Optional[ScoreModel] = None
+    workflow_stage: Optional[str] = None
+    next_step: Optional[str] = None

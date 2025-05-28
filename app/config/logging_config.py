@@ -56,10 +56,12 @@ def setup_logging():
             'app',
             'app.services',
             'app.api',
-            'app.core'
+            'app.core',
+            'app.ai',
+            '__main__'
         ]
         
         for logger_name in loggers:
             logger = logging.getLogger(logger_name)
             logger.setLevel(logging.INFO)
-            logger.propagate = False 
+            logger.propagate = True  # Allow propagation to root logger 

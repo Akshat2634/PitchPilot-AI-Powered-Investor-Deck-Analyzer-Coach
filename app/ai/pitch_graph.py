@@ -1,12 +1,11 @@
 import logging
 from app.ai.config import setup_logging
-from app.ai.agents import pitch_analysis_agent, score_pitch_agent, supervisor_agent
-from app.ai.config import State
-from langgraph.graph import StateGraph, START, END , MessagesState
-from app.schemas.pitch_schema import PitchData, EvaluationResponse
+from app.ai.agents import pitch_analysis_agent, score_pitch_agent, workflow_classifier, router
+from langgraph.graph import StateGraph, START, END
+from app.schemas.pitch_schema import PitchData, EvaluationResponse, State
 
 setup_logging()
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("app.ai.pitch_graph")
     
 
 class PitchGraph:
@@ -17,27 +16,34 @@ class PitchGraph:
         
         
     async def create_workflow(self) -> StateGraph:
-        """
-        Create the complete workflow graph with nodes and edges.
-
-        Returns:
-            StateGraph: The configured workflow graph
-        """
-        logger.info("Creating pitch workflow")
-
-        # Create the workflow
         workflow = StateGraph(State)
-        
-        # Add nodes 
-        workflow.add_node(supervisor_agent)
-        workflow.add_node(pitch_analysis_agent)
-        workflow.add_node(score_pitch_agent)
-        
-        # Add edges 
-        workflow.add_edge(START, "supervisor_agent")
+
+        # nodes
+        workflow.add_node("classifier", workflow_classifier)
+        workflow.add_node("router",    router)
+        workflow.add_node("pitch_analysis_agent", pitch_analysis_agent)
+        workflow.add_node("score_pitch_agent",    score_pitch_agent)
+
+        # start → classifier → router
+        workflow.add_edge(START,      "classifier")
+        workflow.add_edge("classifier","router")
+
+        # router → (analysis | scoring | end)
+        workflow.add_conditional_edges(
+            "router",
+            lambda state: state.get("next_step"),
+            {
+                "analysis": "pitch_analysis_agent",
+                "scoring":  "score_pitch_agent",
+                "complete":      END
+            }
+        )
+
+        # after each agent, go back through classifier → router
+        workflow.add_edge("pitch_analysis_agent", "classifier")
+        workflow.add_edge("score_pitch_agent",    "classifier")
 
         self.workflow = workflow
-        
         return workflow
     
     async def compile_workflow(self) -> None:
@@ -55,17 +61,23 @@ class PitchGraph:
             raise ValueError("Workflow not compiled. Call compile_workflow first.")
         
         logger.info("Analyzing pitch")
-        initial_state = State(pitch_data=pitch_data)
-        
+        initial_state = {
+            "pitch_data": pitch_data,
+            "messages": [],
+            "workflow_stage": None,
+            "next_step": None,
+            "feedback": None,
+            "score": None
+        }
         try:
             # Run the workflow
             result = await self.compiled_app.ainvoke(initial_state)
             
             # Create evaluation response from the result
             evaluation_response = EvaluationResponse(
-                pitch=result.get("pitch"),
+                pitch=result.get("pitch_data"),
                 feedback=result.get("feedback"),
-                questions=result.get("questions")
+                score=result.get("score")
             )
             
             return evaluation_response
@@ -78,6 +90,6 @@ if __name__ == "__main__":
     pitch_graph = PitchGraph()
     asyncio.run(pitch_graph.create_workflow())
     asyncio.run(pitch_graph.compile_workflow())
-    pitch_data = PitchData(pitch_text="Hi how are you?")
+    pitch_data = PitchData(pitch_text="Hi how are you? I am a startup that is building a new product that will help people to learn new things.", action="analysis")
     evaluation_response = asyncio.run(pitch_graph.analyze_pitch(pitch_data))
     print(evaluation_response)

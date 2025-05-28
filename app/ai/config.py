@@ -80,13 +80,6 @@ async def get_openai_client() -> AsyncOpenAI:
 
 
 
-class State(MessagesState):
-    """
-    Type definition for the state of the application.
-    """
-    pitch_data: Optional[PitchData] = None
-    feedback: Optional[FeedbackModel] = None
-    score: Optional[ScoreModel] = None
 
 
 # AI-Powered Investor Pitch Analyzer & Coach
