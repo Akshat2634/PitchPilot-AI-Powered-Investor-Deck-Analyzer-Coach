@@ -1,0 +1,51 @@
+// prisma/schema.prisma
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+generator python_client {
+  provider             = "prisma-client-py"
+  interface            = "asyncio"
+  recursive_type_depth = "5"
+}
+
+model Pitch {
+  id          String   @id @default(uuid())
+  title       String
+  description String?
+  filePath    String
+  fileType    String   // pdf, pptx, docx, txt
+  status      String   @default("pending") // pending, processing, completed, failed
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  feedback    Feedback?
+  questions   InvestorQuestions?
+}
+
+model Feedback {
+  id              String   @id @default(uuid())
+  pitchId         String   @unique
+  pitch           Pitch    @relation(fields: [pitchId], references: [id], onDelete: Cascade)
+  overallScore    Float?
+  scores          Json?    // Stores all dimension scores (clarity, value, traction, etc.)
+  suggestions     Json?    // Structured feedback as JSON
+  elevatorPitch   String?  // AI-generated elevator pitch
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model InvestorQuestions {
+  id          String   @id @default(uuid())
+  pitchId     String   @unique
+  pitch       Pitch    @relation(fields: [pitchId], references: [id], onDelete: Cascade)
+  questions   Json     // Array of questions with categories
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
