@@ -4,7 +4,7 @@ from fastapi import APIRouter, UploadFile, File, HTTPException, Form, Depends
 from fastapi.responses import JSONResponse
 from typing import Optional
 from app.services.file_service import FileService
-from app.schemas.pitch_schema import PitchResponse, PitchStatus, PitchCreate, EvaluationResponse, FeedbackResponse
+from app.schemas.pitch_schema import PitchResponse, PitchStatus, PitchCreate, EvaluationResponse, FeedbackResponse, PitchAction
 from app.config.logging_config import setup_logging
 from app.services.db_actions import create_pitch, get_pitch
 
@@ -14,12 +14,12 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
-# Upload + Score + Suggestions
 @router.post("/evaluate-pitch", response_model=PitchResponse)
 async def evaluate_pitch(
     file: UploadFile = File(...),
     title: str = Form(...),
-    description: Optional[str] = Form(None)
+    description: Optional[str] = Form(None),
+    action: PitchAction = Form(PitchAction.ANALYSIS.value) # default action is analysis
 ):
     """
     Endpoint to upload and evaluate a pitch document.
@@ -33,8 +33,11 @@ async def evaluate_pitch(
         PitchResponse with the created pitch details
     """
     try:
+        logger.info(f"Evaluating pitch with action: {action}")
+        logger.info(f"File: {file.filename}")
         # Use FileService to handle file upload
-        file_path, file_type = await FileService.save_upload_file(file)
+        file_service = FileService()
+        file_path, file_type = await file_service.save_upload_file(file)
         logger.info(f"File uploaded successfully to {file_path}")
         
         # Create pitch data object

@@ -17,6 +17,13 @@ class FileType(str, Enum):
     PPTX = "pptx"
     DOCX = "docx"
     TXT = "txt"
+    
+    
+class PitchAction(str, Enum):
+    ANALYSIS = "analysis"
+    SCORING = "scoring"
+    ALL = "all"
+
 
 # Request Models
 class PitchCreate(BaseModel):

@@ -7,7 +7,7 @@ from app.config.logging_config import setup_logging
 import logging
 from app.ai.config import get_openai_client, parse_openai_response
 from dotenv import load_dotenv
-from app.schemas.pitch_schema import FeedbackModel, ScoreModel, WorkflowClassifier, State
+from app.schemas.pitch_schema import FeedbackModel, ScoreModel, WorkflowClassifier, State, PitchAction
 from langchain_core.messages import AIMessage
 
 
@@ -15,7 +15,7 @@ load_dotenv()
 
 # Set up logging
 setup_logging()
-logger = logging.getLogger("app.ai.agents")
+logger = logging.getLogger(__name__)
 
 # Workflow Classifier - Uses OpenAI to determine workflow stage based on user query
 async def workflow_classifier(state: State) -> dict:
@@ -90,9 +90,9 @@ async def workflow_classifier(state: State) -> dict:
         logger.error(f"Error in workflow classifier: {str(e)}")
         # Fallback to simple logic if OpenAI fails
         if not has_feedback:
-            workflow_stage = "analysis"
+            workflow_stage = PitchAction.ANALYSIS.value
         elif not has_score:
-            workflow_stage = "scoring"
+            workflow_stage = PitchAction.SCORING.value
         else:
             workflow_stage = "complete"
         
@@ -118,10 +118,10 @@ def router(state: State) -> dict:
     logger.info(f"Current workflow stage: {workflow_stage}")
     
     if workflow_stage == "analysis":
-        next_step = "analysis"
+        next_step = PitchAction.ANALYSIS.value
         logger.info("Routing to pitch analysis agent")
     elif workflow_stage == "scoring":
-        next_step = "scoring"
+        next_step = PitchAction.SCORING.value
         logger.info("Routing to score pitch agent")
     else:  # complete
         next_step = "complete"

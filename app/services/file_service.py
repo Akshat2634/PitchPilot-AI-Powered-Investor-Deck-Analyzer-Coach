@@ -3,54 +3,23 @@ import os
 import logging
 from fastapi import UploadFile, HTTPException
 from typing import Tuple
-from supabase import create_client, Client
 import uuid
-from dotenv import load_dotenv
 from app.config.logging_config import setup_logging
+from app.services.supabase_connection import SupabaseConnection
 
 # Setup logging
 setup_logging() 
 logger = logging.getLogger(__name__)
 
-# Load environment variables
-load_dotenv()
-
-# Initialize Supabase client with proper error handling
-SUPABASE_URL = os.getenv("SUPABASE_URL")
-SUPABASE_KEY = os.getenv("SUPABASE_KEY")
-BUCKET_NAME = os.getenv("SUPABASE_BUCKET_NAME")
-
-# Validate required environment variables
-if not SUPABASE_URL or not SUPABASE_KEY or not BUCKET_NAME:
-    missing_vars = []
-    if not SUPABASE_URL:
-        logger.error("SUPABASE_URL is not set")
-        missing_vars.append("SUPABASE_URL")
-    if not SUPABASE_KEY:
-        logger.error("SUPABASE_KEY is not set")
-        missing_vars.append("SUPABASE_KEY")
-    if not BUCKET_NAME:
-        logger.error("SUPABASE_BUCKET_NAME is not set")
-        missing_vars.append("SUPABASE_BUCKET_NAME")
-    raise ValueError(f"Required environment variable(s) missing: {', '.join(missing_vars)}")
-
-# Initialize Supabase client
-try:
-    supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
-    logger.info("Supabase client initialized successfully")
-    
-    # Verify connection by getting session (lightweight operation)
-    session = supabase.auth.get_session()
-    logger.info("Supabase authentication session retrieved")
-    
-except Exception as e:
-    logger.error(f"Failed to initialize Supabase client: {str(e)}")
-    raise RuntimeError(f"Failed to initialize Supabase client: {str(e)}")
-
 
 class FileService:
-    @staticmethod
-    def get_file_type(filename: str) -> str:
+    def __init__(self):
+        """Initialize FileService instance."""
+        self.supabase_connection = SupabaseConnection()
+        self.supabase = self.supabase_connection.client
+        self.bucket_name = self.supabase_connection.get_bucket_name()
+    
+    def get_file_type(self, filename: str) -> str:
         """Extract file type from filename."""
         logger.debug(f"Extracting file type from filename: {filename}")
         extension = os.path.splitext(filename)[1].lower()
@@ -74,8 +43,7 @@ class FileService:
                 detail="Unsupported file type. Supported types: pdf, pptx, docx, txt"
             )
     
-    @staticmethod
-    async def save_upload_file(file: UploadFile) -> Tuple[str, str]:
+    async def save_upload_file(self, file: UploadFile) -> Tuple[str, str]:
         """
         Save uploaded file to Supabase storage and return file path and type.
         
@@ -83,7 +51,7 @@ class FileService:
             Tuple[str, str]: (file_path, file_type)
         """
         logger.info(f"Processing file upload: {file.filename}")
-        file_type = FileService.get_file_type(file.filename)
+        file_type = self.get_file_type(file.filename)
         
         # Generate unique filename
         unique_filename = f"{uuid.uuid4()}.{file_type}"
@@ -95,15 +63,15 @@ class FileService:
         
         # Upload to Supabase Storage
         try:
-            logger.info(f"Uploading file to Supabase bucket: {BUCKET_NAME}")
-            result = supabase.storage.from_(BUCKET_NAME).upload(
+            logger.info(f"Uploading file to Supabase bucket: {self.bucket_name}")
+            result = self.supabase.storage.from_(self.bucket_name).upload(
                 unique_filename,
                 file_content,
                 {"content-type": file.content_type}
             )
             
             # Get the public URL
-            file_path = supabase.storage.from_(BUCKET_NAME).get_public_url(unique_filename)
+            file_path = self.supabase.storage.from_(self.bucket_name).get_public_url(unique_filename)
             logger.info(f"File uploaded successfully. Path: {file_path}")
             
             return file_path, file_type

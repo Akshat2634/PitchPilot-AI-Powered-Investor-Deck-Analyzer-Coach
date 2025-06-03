@@ -2,10 +2,10 @@ import logging
 from app.ai.config import setup_logging
 from app.ai.agents import pitch_analysis_agent, score_pitch_agent, workflow_classifier, router
 from langgraph.graph import StateGraph, START, END
-from app.schemas.pitch_schema import PitchData, EvaluationResponse, State
+from app.schemas.pitch_schema import PitchData, EvaluationResponse, State, PitchAction
 
 setup_logging()
-logger = logging.getLogger("app.ai.pitch_graph")
+logger = logging.getLogger(__name__)
     
 
 class PitchGraph:
@@ -33,8 +33,8 @@ class PitchGraph:
             "router",
             lambda state: state.get("next_step"),
             {
-                "analysis": "pitch_analysis_agent",
-                "scoring":  "score_pitch_agent",
+                PitchAction.ANALYSIS.value: "pitch_analysis_agent",
+                PitchAction.SCORING.value:  "score_pitch_agent",
                 "complete":      END
             }
         )
@@ -90,6 +90,6 @@ if __name__ == "__main__":
     pitch_graph = PitchGraph()
     asyncio.run(pitch_graph.create_workflow())
     asyncio.run(pitch_graph.compile_workflow())
-    pitch_data = PitchData(pitch_text="Hi how are you? I am a startup that is building a new product that will help people to learn new things.", action="analysis")
+    pitch_data = PitchData(pitch_text="Hi how are you? I am a startup that is building a new product that will help people to learn new things.", action=PitchAction.ANALYSIS.value)
     evaluation_response = asyncio.run(pitch_graph.analyze_pitch(pitch_data))
     print(evaluation_response)
