@@ -64,5 +64,15 @@ class SupabaseConnection:
         except Exception as e:
             logger.error(f"Supabase connection test failed: {str(e)}")
             return False
+        
+    def download_file(self, file_path: str) -> bytes:
+        """Download a file from Supabase storage."""
+        try:
+            file_content = self.client.storage.from_(self.bucket_name).download(file_path)
+            return file_content
+        except Exception as e:
+            logger.error(f"Failed to download file from Supabase: {str(e)}")
+            raise Exception(f"Failed to download file from Supabase: {str(e)}")
+        
 
 

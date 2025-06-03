@@ -6,7 +6,7 @@ from typing import Optional
 from app.services.file_service import FileService
 from app.schemas.pitch_schema import PitchResponse, PitchStatus, PitchCreate, EvaluationResponse, FeedbackResponse, PitchAction
 from app.config.logging_config import setup_logging
-from app.services.db_actions import create_pitch, get_pitch
+from app.services.db_actions import DatabaseActions
 
 # Set up logging
 setup_logging()
@@ -48,7 +48,8 @@ async def evaluate_pitch(
         )
         
         # Store in database using db_actions service
-        new_pitch = await create_pitch(pitch_data, file_path)
+        db_actions = DatabaseActions()
+        new_pitch = await db_actions.create_pitch(pitch_data, file_path)
             
         # Here you would typically trigger an async task to process the pitch
         # For now, we'll just return the created pitch
