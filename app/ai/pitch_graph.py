@@ -90,6 +90,6 @@ if __name__ == "__main__":
     pitch_graph = PitchGraph()
     asyncio.run(pitch_graph.create_workflow())
     asyncio.run(pitch_graph.compile_workflow())
-    pitch_data = PitchData(pitch_text="Hi how are you? I am a startup that is building a new product that will help people to learn new things.", action=PitchAction.ANALYSIS.value)
+    pitch_data = PitchData(pitch_text="Hi how are you? I am a startup that is building a new product that will help people to learn new things.can u help me evaluate my pitch by giving a feedback and score?")
     evaluation_response = asyncio.run(pitch_graph.analyze_pitch(pitch_data))
     print(evaluation_response)

@@ -98,7 +98,7 @@ class PitchData(BaseModel):
     Pydantic model for pitch data.
     """
     pitch_text: str = Field(default="", description="Extracted text of the the elevator pitch")
-    action: Literal["analysis", "scoring", "complete"] = Field(..., description="Requested action: analysis, scoring, or complete")
+    # action: Literal["analysis", "scoring", "complete"] = Field(..., description="Requested action: analysis, scoring, or complete")
     
 class NextAgentResponse(BaseModel):
     agent_name: str = Field(default="", description="The name of the next agent to call (pitch_analysis_agent or score_pitch_agent)")

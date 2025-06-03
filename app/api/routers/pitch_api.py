@@ -19,7 +19,7 @@ async def evaluate_pitch(
     file: UploadFile = File(...),
     title: str = Form(...),
     description: Optional[str] = Form(None),
-    action: PitchAction = Form(PitchAction.ANALYSIS.value) # default action is analysis
+    # action: PitchAction = Form(PitchAction.ANALYSIS.value) # default action is analysis
 ):
     """
     Endpoint to upload and evaluate a pitch document.
@@ -33,8 +33,6 @@ async def evaluate_pitch(
         PitchResponse with the created pitch details
     """
     try:
-        logger.info(f"Evaluating pitch with action: {action}")
-        logger.info(f"File: {file.filename}")
         # Use FileService to handle file upload
         file_service = FileService()
         file_path, file_type = await file_service.save_upload_file(file)
