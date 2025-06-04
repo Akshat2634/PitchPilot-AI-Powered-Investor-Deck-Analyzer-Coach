@@ -30,6 +30,7 @@ class PitchCreate(BaseModel):
     title: str
     description: Optional[str] = None
     file_type: Optional[FileType] = None
+    file_content: Optional[str] = None
 
 # Response Models
 class PitchResponse(BaseModel):
@@ -98,6 +99,7 @@ class PitchData(BaseModel):
     Pydantic model for pitch data.
     """
     pitch_text: str = Field(default="", description="Extracted text of the the elevator pitch")
+    user_query: Optional[str] = Field(default=None, description="User's specific query or request for the pitch analysis")
     # action: Literal["analysis", "scoring", "complete"] = Field(..., description="Requested action: analysis, scoring, or complete")
     
 class NextAgentResponse(BaseModel):
@@ -128,3 +130,4 @@ class State(MessagesState):
     score: Optional[ScoreModel] = None
     workflow_stage: Optional[str] = None
     next_step: Optional[str] = None
+    user_query: Optional[str] = None

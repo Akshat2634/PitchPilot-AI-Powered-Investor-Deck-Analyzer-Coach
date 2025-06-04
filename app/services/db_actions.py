@@ -69,7 +69,7 @@ class DatabaseActions:
             logger.info(f"Updated pitch {pitch_id} status to: {status}")
             return updated_pitch
         
-    async def update_pitch_feedback(self, pitch_id: str, feedback: FeedbackModel=None, score: ScoreModel = None):
+    async def update_pitch_feedback_and_score(self, pitch_id: str, feedback: FeedbackModel=None, score: ScoreModel = None):
         """
         Update or create feedback for a pitch record in the database.
         

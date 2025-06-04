@@ -4,9 +4,10 @@ from fastapi import APIRouter, UploadFile, File, HTTPException, Form, Depends
 from fastapi.responses import JSONResponse
 from typing import Optional
 from app.services.file_service import FileService
-from app.schemas.pitch_schema import PitchResponse, PitchStatus, PitchCreate, EvaluationResponse, FeedbackResponse, PitchAction
+from app.schemas.pitch_schema import PitchResponse, PitchStatus, PitchCreate, EvaluationResponse, FeedbackResponse, PitchAction, PitchData
 from app.config.logging_config import setup_logging
 from app.services.db_actions import DatabaseActions
+from app.ai.pitch_graph import PitchGraph
 
 # Set up logging
 setup_logging()
@@ -14,12 +15,12 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
-@router.post("/evaluate-pitch", response_model=PitchResponse)
+@router.post("/evaluate-pitch", response_model=EvaluationResponse)
 async def evaluate_pitch(
     file: UploadFile = File(...),
     title: str = Form(...),
     description: Optional[str] = Form(None),
-    # action: PitchAction = Form(PitchAction.ANALYSIS.value) # default action is analysis
+    user_query: Optional[str] = Form(None),
 ):
     """
     Endpoint to upload and evaluate a pitch document.
@@ -28,6 +29,7 @@ async def evaluate_pitch(
         file: The pitch document file (PDF, PPTX, DOCX, TXT)
         title: Title of the pitch
         description: Optional description of the pitch
+        user_query: Optional user query to evaluate / score the pitch
     
     Returns:
         PitchResponse with the created pitch details
@@ -41,40 +43,86 @@ async def evaluate_pitch(
         logger.info(f"File uploaded successfully to {file_path}")
         
         # Create pitch data object
-        pitch_data = PitchCreate(
+        new_pitch_data = PitchCreate(
             title=title,
             description=description,
-            file_type=file_type
+            file_type=file_type,
+            file_content=file_content
         )
         
         # Store in database using db_actions service
         db_actions = DatabaseActions()
-        new_pitch = await db_actions.create_pitch(pitch_data, file_path)
-            
-        # Here you would typically trigger an async task to process the pitch
-        # For now, we'll just return the created pitch
+        new_pitch = await db_actions.create_pitch(new_pitch_data, file_path)
+
+        pitch_graph = PitchGraph()
+        update_pitch_status = await db_actions.update_pitch_status(new_pitch.id, PitchStatus.PROCESSING)
+        logger.info(f"Pitch status updated to: {update_pitch_status}")
         
-        return PitchResponse(
-            id=new_pitch.id,
-            title=new_pitch.title,
-            description=new_pitch.description,
-            file_path=new_pitch.filePath,
-            file_type=new_pitch.fileType,
-            status=new_pitch.status,
-            created_at=new_pitch.createdAt,
-            updated_at=new_pitch.updatedAt
+        # Create PitchData for analysis with user query
+        analysis_pitch_data = PitchData(
+            pitch_text=file_content,
+            user_query=user_query
         )
+        
+        evaluation_response = await pitch_graph.analyze_pitch(analysis_pitch_data, user_query)
+        logger.info(f"Evaluation response: {evaluation_response}")
+        
+        # Update database with feedback and score results separately
+        if evaluation_response.feedback:
+            try:
+                await db_actions.update_pitch_feedback_and_score(
+                    pitch_id=new_pitch.id,
+                    feedback=evaluation_response.feedback,
+                    score=None
+                )
+                logger.info(f"Updated feedback for pitch {new_pitch.id}")
+            except Exception as db_error:
+                logger.error(f"Failed to update pitch feedback: {str(db_error)}")
+                # Continue with response even if database update fails
+        
+        if evaluation_response.score:
+            try:
+                await db_actions.update_pitch_feedback_and_score(
+                    pitch_id=new_pitch.id,
+                    feedback=None,
+                    score=evaluation_response.score
+                )
+                logger.info(f"Updated score for pitch {new_pitch.id}")
+            except Exception as db_error:
+                logger.error(f"Failed to update pitch score: {str(db_error)}")
+                # Continue with response even if database update fails
+        
+        try:
+            update_pitch_status = await db_actions.update_pitch_status(new_pitch.id, PitchStatus.COMPLETED)
+            logger.info(f"Pitch status updated to: {update_pitch_status}")
+        except Exception as status_error:
+            logger.error(f"Failed to update pitch status to COMPLETED: {str(status_error)}")
+            # Continue with response even if status update fails
             
+        return EvaluationResponse(
+            feedback=evaluation_response.feedback,
+            score=evaluation_response.score
+        )
     except HTTPException as he:
-        # Re-raise HTTP exceptions as they are already properly formatted
+        # Update pitch status to FAILED if possible
+        try:
+            await db_actions.update_pitch_status(new_pitch.id, PitchStatus.FAILED)
+            logger.info(f"Pitch status updated to FAILED due to HTTPException")
+        except Exception as status_error:
+            logger.error(f"Failed to update pitch status to FAILED: {str(status_error)}")
         raise he
     except Exception as e:
+        # Update pitch status to FAILED if possible
+        try:
+            await db_actions.update_pitch_status(new_pitch.id, PitchStatus.FAILED)
+            logger.info(f"Pitch status updated to FAILED due to exception")
+        except Exception as status_error:
+            logger.error(f"Failed to update pitch status to FAILED: {str(status_error)}")
         logger.error(f"Error processing pitch upload: {str(e)}", exc_info=True)
         raise HTTPException(
             status_code=500,
             detail="An unexpected error occurred while processing your pitch. Please try again later."
         )
-
 
 # @router.get("/get-pitch/{pitch_id}", response_model=EvaluationResponse)
 # async def get_pitch(pitch_id: str):
