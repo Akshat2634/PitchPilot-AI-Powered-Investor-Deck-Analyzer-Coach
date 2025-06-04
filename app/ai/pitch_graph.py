@@ -57,8 +57,11 @@ class PitchGraph:
 
     async def analyze_pitch(self, pitch_data: PitchData) -> EvaluationResponse: 
         """Analyze a pitch and return the analysis results."""
+        if not self.workflow:
+            await self.create_workflow()
+
         if not self.compiled_app:
-            raise ValueError("Workflow not compiled. Call compile_workflow first.")
+            await self.compile_workflow()
         
         logger.info("Analyzing pitch")
         initial_state = {
@@ -88,8 +91,6 @@ class PitchGraph:
 if __name__ == "__main__":
     import asyncio
     pitch_graph = PitchGraph()
-    asyncio.run(pitch_graph.create_workflow())
-    asyncio.run(pitch_graph.compile_workflow())
     pitch_data = PitchData(pitch_text="Hi how are you? I am a startup that is building a new product that will help people to learn new things.can u help me evaluate my pitch by giving a feedback and score?")
     evaluation_response = asyncio.run(pitch_graph.analyze_pitch(pitch_data))
     print(evaluation_response)
