@@ -35,6 +35,8 @@ async def evaluate_pitch(
     try:
         # Use FileService to handle file upload
         file_service = FileService()
+        file_content, _ = await file_service.extract_text_from_upload(file)
+        logger.info(f"File content: {file_content}")
         file_path, file_type = await file_service.save_upload_file(file)
         logger.info(f"File uploaded successfully to {file_path}")
         
