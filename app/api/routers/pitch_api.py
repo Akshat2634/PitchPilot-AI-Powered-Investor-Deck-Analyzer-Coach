@@ -64,7 +64,7 @@ async def evaluate_pitch(
             user_query=user_query
         )
         
-        evaluation_response = await pitch_graph.analyze_pitch(analysis_pitch_data, user_query)
+        evaluation_response = await pitch_graph.analyze_pitch(analysis_pitch_data)
         logger.info(f"Evaluation response: {evaluation_response}")
         
         # Update database with feedback and score results separately

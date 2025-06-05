@@ -22,7 +22,7 @@ class FileType(str, Enum):
 class PitchAction(str, Enum):
     ANALYSIS = "analysis"
     SCORING = "scoring"
-    ALL = "all"
+    COMPLETE = "complete"
 
 
 # Request Models

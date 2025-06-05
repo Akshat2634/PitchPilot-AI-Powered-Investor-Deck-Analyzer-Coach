@@ -38,10 +38,7 @@ async def workflow_classifier(state: State) -> dict:
         # Check what's already been completed
         has_feedback = state.get("feedback") is not None
         has_score = state.get("score") is not None
-        pitch_data = state.get("pitch_data")
-        pitch_text = pitch_data.pitch_text if pitch_data else ""
-        # input_action = pitch_data.action if pitch_data else ""
-        logger.info(f"Pitch text: {pitch_text}")
+        user_query = state.get("user_query")
         logger.info(f"State analysis - Has feedback: {has_feedback}, Has score: {has_score}")
         
         # Create prompt for OpenAI to classify workflow stage
@@ -54,10 +51,13 @@ async def workflow_classifier(state: State) -> dict:
         Based on the founder's pitch and intent of the founder, determine the next workflow stage.
         
         [RULES]
-        - Based on the founder's pitch and intent of the founder in the user query, determine the next workflow stage.
+        - Based on the intent of the founder in the user query, determine the next workflow stage.
+        - Before making a decision, check if the task has already been performed.
+        - If the task has already been performed, return "complete"
+        - If the task has not been performed, return the next workflow stage.
         
-        [INPUT]
-        - Founder's pitch: {pitch_text}
+        
+        [TASKS PERFORMED]
         - Has feedback: {has_feedback}
         - Has score: {has_score}
         
@@ -69,8 +69,8 @@ async def workflow_classifier(state: State) -> dict:
         response = await client.chat.completions.create(
             model="gpt-4o-mini",
             messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": system_prompt.format(pitch_text=pitch_text, has_feedback=has_feedback, has_score=has_score)}
+                {"role": "system", "content": system_prompt.format(has_feedback=has_feedback, has_score=has_score)},
+                {"role": "user", "content": user_query}
             ],
             response_model=WorkflowClassifier,
             temperature=0.1
@@ -80,7 +80,8 @@ async def workflow_classifier(state: State) -> dict:
         logger.info(f"OpenAI classified workflow stage as: {workflow_stage}")
         
         logger.info("=== WORKFLOW CLASSIFIER COMPLETED ===")
-        return {"workflow_stage": workflow_stage}
+        return {"workflow_stage": workflow_stage,
+                "messages": state.get("messages", []) + [AIMessage(content=str(response))]}
         
     except Exception as e:
         logger.error(f"Error in workflow classifier: {str(e)}")
@@ -207,7 +208,7 @@ async def pitch_analysis_agent(state: State) -> dict:
         # Update the state with the feedback
         response = {
             "feedback": result,
-            "messages": [AIMessage(content=str(result))]
+            "messages": state.get("messages", []) + [AIMessage(content=str(result))]
         }
         
         logger.info("=== PITCH ANALYSIS AGENT COMPLETED SUCCESSFULLY ===")
@@ -296,7 +297,7 @@ async def score_pitch_agent(state: State) -> dict:
         
         response = {
             "score": result,
-            "messages": [AIMessage(content=str(result))]
+            "messages": state.get("messages", []) + [AIMessage(content=str(result))]
         }
         
         logger.info("=== SCORE PITCH AGENT COMPLETED SUCCESSFULLY ===")

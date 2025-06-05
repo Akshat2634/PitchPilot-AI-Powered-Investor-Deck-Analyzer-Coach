@@ -35,7 +35,7 @@ class PitchGraph:
             {
                 PitchAction.ANALYSIS.value: "pitch_analysis_agent",
                 PitchAction.SCORING.value:  "score_pitch_agent",
-                "complete":      END
+                PitchAction.COMPLETE.value:      END
             }
         )
 
@@ -75,6 +75,7 @@ class PitchGraph:
         try:
             # Run the workflow
             result = await self.compiled_app.ainvoke(initial_state)
+            print("Final state:", result)
             
             # Create evaluation response from the result
             evaluation_response = EvaluationResponse(
@@ -91,6 +92,6 @@ class PitchGraph:
 if __name__ == "__main__":
     import asyncio
     pitch_graph = PitchGraph()
-    pitch_data = PitchData(pitch_text="Hi how are you? I am a startup that is building a new product that will help people to learn new things.can u help me evaluate my pitch by giving a feedback and score?")
+    pitch_data = PitchData(pitch_text="Hi how are you? I am a startup that is building a new product that will help people to learn new things.", user_query="Please provide detailed feedback for this pitch")
     evaluation_response = asyncio.run(pitch_graph.analyze_pitch(pitch_data))
     print(evaluation_response)
