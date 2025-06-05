@@ -9,6 +9,9 @@ from app.ai.config import get_openai_client, parse_openai_response
 from dotenv import load_dotenv
 from app.schemas.pitch_schema import FeedbackModel, ScoreModel, WorkflowClassifier, State, PitchAction
 from langchain_core.messages import AIMessage
+from langgraph.types import Command
+from langgraph.graph import MessagesState
+from langgraph.graph import END
 
 
 load_dotenv()
@@ -17,19 +20,19 @@ load_dotenv()
 setup_logging()
 logger = logging.getLogger(__name__)
 
-# Workflow Classifier - Uses OpenAI to determine workflow stage based on user query
-async def workflow_classifier(state: State) -> dict:
+# OpenAI Supervisor - Uses OpenAI to determine which agent to call next
+async def supervisor(state: State) -> Command[Literal["pitch_analysis_agent", "score_pitch_agent", "__end__"]]:
     """
-    Use OpenAI to classify the current workflow stage based on user query and completed work.
+    OpenAI-powered supervisor that determines which agent to call next based on user query and completed work.
     
     Args:
         state (State): Current application state
         
     Returns:
-        dict: Updated state with workflow_stage
+        Command: Routing command to next agent or end
     """
-    logger.info("=== WORKFLOW CLASSIFIER STARTED ===")
-    logger.info("OpenAI workflow classifier determining current stage")
+    logger.info("=== SUPERVISOR STARTED ===")
+    logger.info("OpenAI supervisor determining next agent")
     
     try:
         # Get OpenAI client
@@ -38,99 +41,93 @@ async def workflow_classifier(state: State) -> dict:
         # Check what's already been completed
         has_feedback = state.get("feedback") is not None
         has_score = state.get("score") is not None
-        user_query = state.get("user_query")
-        logger.info(f"State analysis - Has feedback: {has_feedback}, Has score: {has_score}")
+        user_query = state.get("user_query", "")
+
         
-        # Create prompt for OpenAI to classify workflow stage
+        logger.info(f"State analysis - Has feedback: {has_feedback}, Has score: {has_score}")
+        logger.info(f"User query: {user_query}")
+        
+        # Create prompt for OpenAI to determine next agent
         system_prompt = """
         [IDENTITY]
-        You are a workflow classifier supervisor for a pitch analysis system. 
-        You are an expert in the art of classifying workflow stages and have a deep understanding of the evaluation criteria and scoring rubrics of leading venture capital firms.
+        You are a workflow supervisor for a pitch analysis system.
+        You are an expert in routing workflows with deep knowledge of evaluation criteria and scoring rubrics used by top venture capital firms.
 
         [TASK]
-        Based on the founder's pitch and intent of the founder, determine the next workflow stage.
+        Based on the founder's pitch and the user's query, determine which agent to call next.
+
+        [CONTEXT]
+        - Current state: has_feedback={has_feedback}, has_score={has_score}
+        - User query: {user_query}
+        - Available agents: "pitch_analysis_agent" (provides detailed feedback), "score_pitch_agent" (provides numerical scores)
+
+        [ROUTING RULES]
+        [CASE 1]
+        1. If the user explicitly requests ONLY scoring (e.g., "provide just the score", "score only", "what's the score") AND no score exists, route to "score_pitch_agent"
+        2. If the user requests ONLY scoring, and score ALREADY EXISTS, return "complete".
         
-        [RULES]
-        - Based on the intent of the founder in the user query, determine the next workflow stage.
-        - Before making a decision, check if the task has already been performed.
-        - If the task has already been performed, return "complete"
-        - If the task has not been performed, return the next workflow stage.
+        [CASE 2]
+        1. If the user explicitly requests ONLY analysis/feedback AND no feedback exists, route to "pitch_analysis_agent" 
+        2. If the user requests ONLY analysis/feedback, and feedback ALREADY EXISTS, return "complete".
+        
+        [CASE 3]
+        1. If the user query requests both analysis and scoring or is general/ambiguous:
+            - If no feedback exists, route to "pitch_analysis_agent"
+            - If feedback exists but no score exists, route to "score_pitch_agent"
+        2. If both feedback and score exist (or the requested tasks are complete), return "__end__"
         
         
-        [TASKS PERFORMED]
-        - Has feedback: {has_feedback}
-        - Has score: {has_score}
+        [CASE 4]
+        1. Default: if nothing exists, start with "pitch_analysis_agent"
         
         [OUTPUT FORMAT]
-        Return only one of: "analysis", "scoring", or "complete"
+        Return exactly one of: "analysis", "scoring", or "complete"
         """
         
-        # Call OpenAI to classify workflow stage
+        # Call OpenAI to determine next agent
         response = await client.chat.completions.create(
-            model="gpt-4o-mini",
+            model=os.getenv("OPENAI_MODEL_SUPERVISOR"),
             messages=[
-                {"role": "system", "content": system_prompt.format(has_feedback=has_feedback, has_score=has_score)},
-                {"role": "user", "content": user_query}
+                {"role": "system", "content": system_prompt.format(
+                    has_feedback=has_feedback, 
+                    has_score=has_score,
+                    user_query=user_query
+                )},
+                {"role": "user", "content": f"Route this request: {user_query}"}
             ],
             response_model=WorkflowClassifier,
             temperature=0.1
         )
         
-        workflow_stage = response.workflow_stage
-        logger.info(f"OpenAI classified workflow stage as: {workflow_stage}")
+        next_agent = response.workflow_stage
+        if next_agent == PitchAction.ANALYSIS:
+            next_agent = "pitch_analysis_agent"
+        elif next_agent == PitchAction.SCORING:
+            next_agent = "score_pitch_agent"
+        elif next_agent == PitchAction.COMPLETE:
+            next_agent = END
+            
+        logger.critical(f"Supervisor routing to: {next_agent}")
+        logger.info("=== SUPERVISOR COMPLETED ===")
         
-        logger.info("=== WORKFLOW CLASSIFIER COMPLETED ===")
-        return {"workflow_stage": workflow_stage,
-                "messages": state.get("messages", []) + [AIMessage(content=str(response))]}
+        return Command(goto=next_agent)
         
     except Exception as e:
-        logger.error(f"Error in workflow classifier: {str(e)}")
-        # Fallback to simple logic if OpenAI fails
+        logger.error(f"Error in supervisor: {str(e)}")
+        # Fallback logic if OpenAI fails
         if not has_feedback:
-            workflow_stage = PitchAction.ANALYSIS.value
+            next_agent = "pitch_analysis_agent"
         elif not has_score:
-            workflow_stage = PitchAction.SCORING.value
+            next_agent = "score_pitch_agent"
         else:
-            workflow_stage = "complete"
+            next_agent = END
         
-        logger.info(f"Fallback workflow stage: {workflow_stage}")
-        return {"workflow_stage": workflow_stage}
-
-
-# Router - Determines the next step based on workflow stage
-def router(state: State) -> dict:
-    """
-    Route to the next step based on the current workflow stage.
-    
-    Args:
-        state (State): Current application state
-        
-    Returns:
-        dict: Updated state with next_step
-    """
-    logger.info("=== ROUTER STARTED ===")
-    logger.info("Router determining next step")
-    
-    workflow_stage = state.get("workflow_stage", "analysis")
-    logger.info(f"Current workflow stage: {workflow_stage}")
-    
-    if workflow_stage == "analysis":
-        next_step = PitchAction.ANALYSIS.value
-        logger.info("Routing to pitch analysis agent")
-    elif workflow_stage == "scoring":
-        next_step = PitchAction.SCORING.value
-        logger.info("Routing to score pitch agent")
-    else:  # complete
-        next_step = "complete"
-        logger.info("Workflow complete - routing to end")
-    
-    logger.info(f"Router directing to: {next_step}")
-    logger.info("=== ROUTER COMPLETED ===")
-    return {"next_step": next_step}
+        logger.info(f"Fallback supervisor routing to: {next_agent}")
+        return Command(goto=next_agent)
 
 
 # Pitch Analysis Agent - Generates structured feedback  
-async def pitch_analysis_agent(state: State) -> dict:
+async def pitch_analysis_agent(state: State) -> Command[Literal["supervisor"]]:
     """
     Analyze pitch content and generate structured feedback.
     
@@ -138,14 +135,11 @@ async def pitch_analysis_agent(state: State) -> dict:
         state (State): Current application state with pitch_data field populated
         
     Returns:
-        dict: Updated state with feedback field populated
-        
-    Raises:
-        ValueError: If pitch_data is missing in the state
-        RuntimeError: If analysis process fails
+        Command: Updated state with feedback and route back to supervisor
     """
     logger.info("=== PITCH ANALYSIS AGENT STARTED ===")
     logger.info("Starting pitch analysis agent")
+    
     try:
         pitch_data = state.get("pitch_data")
         if not pitch_data:
@@ -183,10 +177,9 @@ async def pitch_analysis_agent(state: State) -> dict:
             4. **Opportunities:** Identify untapped angles or areas ripe for expansion.
             5. **Threats:** Surface potential risks or competitive headwinds not adequately addressed.
             6. **Suggestions for improvement:** Specific, prioritized steps to elevate the pitch, referencing YC/a16z playbooks where relevant.
-            
             """
-    
-    )
+        )
+        
         logger.info("Getting OpenAI client")
         client = await get_openai_client()
         
@@ -204,15 +197,15 @@ async def pitch_analysis_agent(state: State) -> dict:
         
         logger.info("Successfully received feedback from OpenAI")
         logger.info(f"Feedback generated - Overall feedback length: {len(result.overall_feedback)} characters")
-        
-        # Update the state with the feedback
-        response = {
-            "feedback": result,
-            "messages": state.get("messages", []) + [AIMessage(content=str(result))]
-        }
-        
         logger.info("=== PITCH ANALYSIS AGENT COMPLETED SUCCESSFULLY ===")
-        return response
+        
+        return Command(
+            goto="supervisor",
+            update={
+                "feedback": result,
+                "messages": state.get("messages", []) + [AIMessage(content=str(result))]
+            }
+        )
         
     except Exception as e:
         logger.error(f"Error in pitch analysis agent: {str(e)}")
@@ -221,7 +214,7 @@ async def pitch_analysis_agent(state: State) -> dict:
     
     
 # Score Pitch Agent - Generates structured scoring
-async def score_pitch_agent(state: State) -> dict:
+async def score_pitch_agent(state: State) -> Command[Literal["supervisor"]]:
     """
     Analyze pitch content and generate structured scoring.
     
@@ -229,14 +222,11 @@ async def score_pitch_agent(state: State) -> dict:
         state (State): Current application state with pitch_data field populated
         
     Returns:
-        dict: Updated state with score fields populated    
-
-    Raises:
-        ValueError: If pitch_data is missing in the state
-        RuntimeError: If analysis process fails
+        Command: Updated state with scores and route back to supervisor
     """
     logger.info("=== SCORE PITCH AGENT STARTED ===")
     logger.info("Starting score pitch agent")
+    
     try:
         pitch_data = state.get("pitch_data")
         if not pitch_data:
@@ -294,14 +284,15 @@ async def score_pitch_agent(state: State) -> dict:
         
         logger.info("Successfully received scores from OpenAI")
         logger.info(f"Scores generated - Overall: {result.overall}, Clarity: {result.clarity}, Differentiation: {result.differentiation}, Traction: {result.traction}, Scalability: {result.scalability}")
-        
-        response = {
-            "score": result,
-            "messages": state.get("messages", []) + [AIMessage(content=str(result))]
-        }
-        
         logger.info("=== SCORE PITCH AGENT COMPLETED SUCCESSFULLY ===")
-        return response
+        
+        return Command(
+            goto="supervisor",
+            update={
+                "score": result,
+                "messages": state.get("messages", []) + [AIMessage(content=str(result))]
+            }
+        )
         
     except Exception as e:
         logger.error(f"Error in score pitch agent: {str(e)}")

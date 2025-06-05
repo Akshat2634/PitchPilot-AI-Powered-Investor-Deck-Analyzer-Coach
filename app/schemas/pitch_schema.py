@@ -109,7 +109,7 @@ class WorkflowClassifier(BaseModel):
     """
     Pydantic model for workflow classification.
     """
-    workflow_stage: Literal["analysis", "scoring", "complete"] = Field(
+    workflow_stage: PitchAction = Field(
         ...,
         description="Classify the current workflow stage: 'analysis' if feedback is needed, 'scoring' if score is needed, 'complete' if the workflow is complete"
     )
