@@ -1,10 +1,34 @@
 'use client'
 
-import React, { useState, useRef } from 'react'
+import React, { useState, useRef, useEffect } from 'react'
 import { Upload, FileText, ArrowLeft } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { api } from '@/lib/api'
-import { EvaluationResponse, PitchStatus } from '@/types/pitch'
+
+// Custom hook for typing effect
+const useTypingEffect = (text: string, speed: number = 100, delay: number = 0) => {
+  const [displayText, setDisplayText] = useState('')
+  
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      let i = 0
+      const typingInterval = setInterval(() => {
+        if (i < text.length) {
+          setDisplayText(text.slice(0, i + 1))
+          i++
+        } else {
+          clearInterval(typingInterval)
+        }
+      }, speed)
+      
+      return () => clearInterval(typingInterval)
+    }, delay)
+    
+    return () => clearTimeout(timer)
+  }, [text, speed, delay])
+  
+  return displayText
+}
 
 export default function UploadPitchForm() {
   const router = useRouter()
@@ -16,6 +40,20 @@ export default function UploadPitchForm() {
   const [analysisFocus, setAnalysisFocus] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [dragActive, setDragActive] = useState(false)
+  const [isVisible, setIsVisible] = useState(false)
+
+  // Typing effect placeholders
+  const titlePlaceholder = useTypingEffect('Enter your pitch title', 80, 1000)
+  const descriptionPlaceholder = useTypingEffect('Brief description about your startup', 60, 1500)
+  const focusPlaceholder = useTypingEffect('Describe what you want me to analyze, score, or evaluate in your pitch. Be specific about your goals and areas of focus.', 50, 2000)
+
+  useEffect(() => {
+    // Trigger animation after component mounts
+    const timer = setTimeout(() => {
+      setIsVisible(true)
+    }, 100)
+    return () => clearTimeout(timer)
+  }, [])
 
   const handleDrag = (e: React.DragEvent) => {
     e.preventDefault()
@@ -49,7 +87,7 @@ export default function UploadPitchForm() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!file || !pitchTitle.trim()) return
+    if (!file || !pitchTitle.trim() || !analysisFocus.trim()) return
 
     setIsLoading(true)
 
@@ -58,7 +96,7 @@ export default function UploadPitchForm() {
       formData.append('file', file)
       formData.append('pitch_title', pitchTitle.trim())
       formData.append('description', description.trim())
-      formData.append('user_query', analysisFocus.trim() || 'Provide comprehensive analysis and scoring')
+      formData.append('user_query', analysisFocus.trim())
 
       const result = await api.analyzePitch(formData)
       
@@ -88,10 +126,12 @@ export default function UploadPitchForm() {
   return (
     <div className="min-h-screen bg-slate-950 text-white">
       {/* Header */}
-      <div className="border-b border-slate-800/50">
+      <div className={`border-b border-slate-800/50 transition-all duration-700 ease-out ${
+        isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4'
+      }`}>
         <div className="max-w-4xl mx-auto px-6 py-6">
           <button 
-            onClick={() => router.back()}
+            onClick={() => router.push('/')}
             className="flex items-center text-slate-400 hover:text-white transition-colors duration-200 mb-6"
           >
             <ArrowLeft className="w-5 h-5 mr-2" />
@@ -110,7 +150,9 @@ export default function UploadPitchForm() {
       </div>
 
       {/* Main Content */}
-      <div className="max-w-4xl mx-auto px-6 py-12">
+      <div className={`max-w-4xl mx-auto px-6 py-12 transition-all duration-700 ease-out delay-200 ${
+        isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
+      }`}>
         <div className="bg-slate-900/50 rounded-2xl border border-slate-800/50 p-8">
           <div className="flex items-center mb-8">
             <Upload className="w-6 h-6 text-blue-400 mr-3" />
@@ -192,7 +234,7 @@ export default function UploadPitchForm() {
                 type="text"
                 value={pitchTitle}
                 onChange={(e) => setPitchTitle(e.target.value)}
-                placeholder="Enter your pitch title"
+                placeholder={titlePlaceholder}
                 className="w-full px-4 py-3 bg-slate-800/50 border border-slate-700/50 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all duration-200"
                 required
               />
@@ -206,30 +248,34 @@ export default function UploadPitchForm() {
               <textarea
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                placeholder="Brief description of your pitch"
+                placeholder={descriptionPlaceholder}
                 rows={4}
                 className="w-full px-4 py-3 bg-slate-800/50 border border-slate-700/50 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all duration-200 resize-none"
               />
             </div>
 
-            {/* Analysis Focus */}
+            {/* Analysis Prompt */}
             <div>
               <label className="block text-sm font-medium text-slate-300 mb-3">
-                Analysis Focus (Optional)
+                AI Analysis Prompt <span className="text-red-400">*</span>
               </label>
               <textarea
                 value={analysisFocus}
                 onChange={(e) => setAnalysisFocus(e.target.value)}
-                placeholder="What specific aspects would you like us to focus on? (e.g., 'Please provide detailed feedback on market differentiation')"
+                placeholder={focusPlaceholder}
                 rows={4}
                 className="w-full px-4 py-3 bg-slate-800/50 border border-slate-700/50 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all duration-200 resize-none"
+                required
               />
+              <p className="text-xs text-slate-500 mt-2">
+                Tell our AI what specific aspects to analyze, score, or evaluate. Examples: &ldquo;Focus on market opportunity and competitive analysis&rdquo; or &ldquo;Evaluate the financial projections and funding ask&rdquo;
+              </p>
             </div>
 
             {/* Submit Button */}
             <button
               type="submit"
-              disabled={!file || !pitchTitle.trim() || isLoading}
+              disabled={!file || !pitchTitle.trim() || !analysisFocus.trim() || isLoading}
               className="w-full px-8 py-4 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl hover:from-blue-600 hover:to-purple-700 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed text-lg font-semibold flex items-center justify-center"
             >
               {isLoading ? (

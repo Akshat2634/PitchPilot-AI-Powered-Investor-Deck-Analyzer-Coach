@@ -1,49 +1,103 @@
 # Dependencies
 node_modules/
-package-lock.json
-pnpm-lock.yaml
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
 
 # Next.js
 .next/
 out/
 build/
+dist/
 
 # Environment variables
 .env
 .env.local
 .env.development.local
-.env.test.local 
+.env.test.local
 .env.production.local
+.env.staging
 
 # Python
 __pycache__/
 *.py[cod]
-*.pyo
+*$py.class
+*.so
+.Python
 .venv/
 venv/
 ENV/
+env/
+.coverage
+.pytest_cache/
+.mypy_cache/
+.tox/
+*.egg-info/
+htmlcov/
 
 # Database
 *.db
 *.sqlite
 *.sqlite3
-.prisma/migrations/
+.prisma/
+prisma/migrations/
 
 # Logs
+logs/
 *.log
 npm-debug.log*
 yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
 
-# IDE & OS
+# Runtime data
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+# IDE and editors
 .vscode/
 .idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
 Thumbs.db
 
-# Cache
+# Temporary folders
+tmp/
+temp/
+
+# Cache directories
 .npm
 .eslintcache
-.pytest_cache/
+.parcel-cache
+
+# Optional REPL history
+.node_repl_history
+
+# Output of 'npm pack'
+*.tgz
+
+# Yarn Integrity file
+.yarn-integrity
+
+# dotenv environment variables file
+.env.backup
+
+# Stores VSCode versions used for testing VSCode extensions
+.vscode-test
 
 # Project specific
-uploads/ 
+uploads/
+*.cert
+*.key
+.coverage.* 
