@@ -1,135 +1,280 @@
-# PitchPilot: AI-Powered Investor Pitch Analyzer & Coach
+# 🚀 PitchPilot: AI-Powered Investor Deck Analyzer & Coach
 
-## Overview
-PitchPilot is an enterprise-grade platform that leverages advanced AI to analyze and improve investor pitch decks and presentation scripts. Built with LangGraph and state-of-the-art Large Language Models, it delivers comprehensive feedback, detailed scoring, and realistic investor Q&A simulation to help founders refine and perfect their pitches for maximum impact.
+> **Transform your pitch deck from good to fundable with AI-powered multi-agent analysis**
 
-## Key Features
-- **Multi-dimensional Analysis**: Evaluates pitch decks across critical dimensions including clarity, market differentiation, traction evidence, and scalability potential
-- **Smart Document Processing**: Seamlessly handles PDF, PPTX, DOCX, and TXT formats with advanced OCR capabilities for image-based content
-- **AI-Powered Feedback**: Delivers specific, actionable suggestions based on Y Combinator and top VC best practices
-- **Investor Q&A Simulation**: Generates relevant investor questions categorized by importance and provides strategic preparation guidance
+[![Built with LangGraph](https://img.shields.io/badge/Built%20with-LangGraph-blue)](https://github.com/langchain-ai/langgraph)
+[![Powered by OpenAI](https://img.shields.io/badge/Powered%20by-OpenAI-green)](https://openai.com)
+[![Next.js](https://img.shields.io/badge/Frontend-Next.js%2015-black)](https://nextjs.org)
 
-## Technical Architecture
+## 🎯 What is PitchPilot?
 
-### Backend Stack
-- **Framework**: FastAPI with async support for high-performance API endpoints
-- **Database**: PostgreSQL with Prisma ORM for type-safe database access
-- **Storage**: Supabase Storage for secure file management
-- **AI/ML**: 
-  - LangGraph for multi-step reasoning workflows
-  - LangChain for AI orchestration
-  - OpenAI for language processing
-  - Instructor for structured LLM outputs
-- **Document Processing**: 
-  - PyPDF2 & PDFPlumber for PDF extraction
-  - python-docx for Word documents
-  - python-pptx for PowerPoint presentations
-- **Configuration**: Environment-based configuration with python-dotenv
+PitchPilot is an enterprise-grade AI platform that helps founders perfect their investor pitch decks. Using a sophisticated **multi-agent AI system**, it provides comprehensive analysis, actionable feedback, and investor-perspective insights to maximize your chances of securing funding.
 
-### Project Structure
+### 🤖 Multi-Agent Orchestration
+
+Our LangGraph-powered system employs **4 specialized AI agents** working in concert:
+
+1. **📊 Analysis Agent** - Deep-dives into your pitch structure, narrative flow, and completeness
+2. **💯 Scoring Agent** - Evaluates across 10+ dimensions using VC best practices
+3. **💡 Feedback Agent** - Provides specific, actionable improvements tailored to your industry
+4. **❓ Q&A Agent** - Simulates investor questions to prepare you for pitch meetings
+
+## ✨ Core Features
+
+### For Founders
+- 🎯 **Intelligent Analysis** - Get VC-grade feedback in seconds, not weeks
+- 📈 **Comprehensive Scoring** - Know exactly where your pitch stands (0-100 scale)
+- 💬 **Investor Q&A Simulation** - Prepare for tough questions before they're asked
+- 📄 **Multi-Format Support** - Upload PDF, PPTX, DOCX, or TXT files
+- 🎨 **Beautiful Dashboard** - Modern UI to visualize your pitch performance
+
+### Technical Excellence
+- ⚡ **Real-time Processing** - Async architecture for lightning-fast analysis
+- 🔐 **Enterprise Security** - Secure file handling with Supabase storage
+- 🎭 **Smart Routing** - LangGraph orchestrates agent workflows intelligently
+- 📊 **Structured Output** - Type-safe responses with Pydantic validation
+
+## 🏗️ Architecture Overview
+
+```mermaid
+graph LR
+    A[Frontend - Next.js] --> B[FastAPI Backend]
+    B --> C[LangGraph Orchestrator]
+    C --> D[Analysis Agent]
+    C --> E[Scoring Agent]
+    C --> F[Feedback Agent]
+    C --> G[Q&A Agent]
+    D --> H[OpenAI GPT-4]
+    E --> H
+    F --> H
+    G --> H
 ```
-app/
-├── ai/                 # AI agents and processing logic
-│   ├── agents.py      # AI agent implementations
-│   ├── pitch_graph.py # LangGraph workflow definitions
-│   └── config.py      # AI configuration
-├── api/               # FastAPI application
-│   ├── api.py        # Main FastAPI app configuration
-│   └── routers/      # API route handlers
-│       └── pitch_api.py
-├── config/           # Application configuration
-│   ├── prisma_client.py
-│   └── logging_config.py
-├── schemas/          # Pydantic data models
-│   └── pitch_schema.py
-└── services/         # Business logic services
-    ├── db_actions.py
-    ├── file_service.py
-    └── supabase_connection.py
-```
 
-### Data Models
-- **Pitch**: Stores deck metadata, file references, and processing status
-- **Feedback**: Contains detailed scoring, suggestions, and AI-generated elevator pitches
-- **InvestorQuestions**: Manages categorized questions with importance ratings and rationales
-
-## Getting Started
+## 🚀 Quick Start
 
 ### Prerequisites
-- Python 3.8+
-- Node.js 16+ (for Prisma)
+- Python 3.8+ & Node.js 16+
 - PostgreSQL database
+- OpenAI API key
+- Supabase account (for storage)
 
-### Installation
-1. Clone the repository:
-   ```bash
-   git clone <repository-url>
-   cd PitchPilot-AI-Powered-Investor-Deck-Analyzer-Coach
-   ```
+### 1️⃣ Clone & Setup
 
-2. Set up environment variables:
-   - Create a `.env` file in the root directory
-   - Add required environment variables (DATABASE_URL, DIRECT_URL, OPENAI_API_KEY, etc.)
-
-3. Install Python dependencies:
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-4. Install Node.js dependencies:
-   ```bash
-   npm install
-   ```
-
-5. Initialize and migrate the database:
-   ```bash
-   npx prisma generate
-   npx prisma db push
-   ```
-
-### Running the Application
-Start the development server:
 ```bash
-python main.py
+# Clone the repository
+git clone https://github.com/yourusername/PitchPilot-AI-Powered-Investor-Deck-Analyzer-Coach.git
+cd PitchPilot-AI-Powered-Investor-Deck-Analyzer-Coach
+
+# Setup Python environment
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+pip install -r backend/requirements.txt
+
+# Setup Node.js dependencies
+npm install
 ```
 
-The API will be available at `http://localhost:8000`
+### 2️⃣ Environment Configuration
 
-## API Documentation
-Once the server is running, visit:
-- **Interactive Docs**: `http://localhost:8000/docs` (Swagger UI)
-- **Alternative Docs**: `http://localhost:8000/redoc`
-- **Health Check**: `http://localhost:8000/health`
+Create `.env` in the root directory:
+
+```env
+# Database
+DATABASE_URL="postgresql://user:password@localhost:5432/pitchpilot"
+DIRECT_URL="postgresql://user:password@localhost:5432/pitchpilot"
+
+# OpenAI
+OPENAI_API_KEY="sk-..."
+
+# Supabase
+NEXT_PUBLIC_SUPABASE_URL="https://xxx.supabase.co"
+NEXT_PUBLIC_SUPABASE_ANON_KEY="xxx"
+SUPABASE_SERVICE_ROLE_KEY="xxx"
+```
+
+### 3️⃣ Database Setup
+
+```bash
+# Generate Prisma client
+npx prisma generate
+
+# Push schema to database
+npx prisma db push
+```
+
+### 4️⃣ Launch the Platform
+
+```bash
+# Terminal 1: Start the backend
+cd backend
+python main.py
+
+# Terminal 2: Start the frontend
+cd frontend
+npm run dev
+```
+
+🎉 **Visit [http://localhost:3000](http://localhost:3000) to start analyzing!**
+
+## 📁 Project Structure
+
+```
+PitchPilot/
+├── 🎨 frontend/                 # Next.js 15 React application
+│   ├── src/
+│   │   ├── app/                # App router pages
+│   │   ├── components/         # React components
+│   │   ├── lib/               # API client & utilities
+│   │   └── types/             # TypeScript definitions
+│   └── public/                # Static assets
+│
+├── 🧠 backend/                 # FastAPI + LangGraph backend
+│   ├── app/
+│   │   ├── ai/               # Multi-agent system
+│   │   │   ├── agents.py     # Agent implementations
+│   │   │   └── pitch_graph.py # LangGraph workflows
+│   │   ├── api/              # API endpoints
+│   │   ├── schemas/          # Pydantic models
+│   │   └── services/         # Business logic
+│   └── main.py               # Application entry
+│
+└── 📊 prisma/                  # Database schema
+    └── schema.prisma
+```
+
+## 🤖 The AI Agents Explained
+
+### 🔍 Analysis Agent
+Examines your pitch deck for:
+- Problem-solution fit clarity
+- Market opportunity presentation
+- Team credibility signals
+- Business model viability
+
+### 📊 Scoring Agent
+Rates your pitch on:
+- **Clarity** (0-100): How well you communicate your idea
+- **Market Differentiation** (0-100): Your competitive advantage
+- **Traction Evidence** (0-100): Proof of concept/growth
+- **Scalability** (0-100): Growth potential
+- **Team Strength** (0-100): Founder-market fit
+
+### 💡 Feedback Agent
+Provides:
+- Specific improvement suggestions
+- Industry-tailored recommendations
+- Before/after examples
+- Priority action items
+
+### ❓ Q&A Agent
+Generates:
+- Top 10 likely investor questions
+- Difficulty ratings (Easy/Medium/Hard)
+- Suggested answer frameworks
+- Red flag identifications
+
+## 🛠️ Tech Stack
+
+### Frontend
+- **Framework**: Next.js 15.3.3 with App Router
+- **UI**: React 19 + Tailwind CSS
+- **Language**: TypeScript
+- **Icons**: Lucide React
+
+### Backend
+- **API**: FastAPI with async/await
+- **AI Orchestration**: LangGraph + LangChain
+- **LLM**: OpenAI GPT-4
+- **Database**: PostgreSQL + Prisma ORM
+- **Storage**: Supabase Storage
+
+### DevOps
+- **Logging**: Color-coded console output
+- **Testing**: Pytest + Jest
+- **API Docs**: Auto-generated Swagger/ReDoc
+
+## 📚 API Reference
 
 ### Main Endpoints
-- `POST /evaluate-pitch` - Upload and analyze a pitch deck
-- `GET /health` - API health check
-- `GET /` - API information and available endpoints
 
-## Development Features
-- **Comprehensive Logging**: Color-coded logging system with configurable levels
-- **Async Database Access**: Context managers for reliable database connections
-- **Type Safety**: Pydantic schemas for request/response validation
-- **CORS Support**: Configured for cross-origin requests
-- **Error Handling**: Robust error handling throughout the application
+#### `POST /evaluate-pitch`
+Upload and analyze a pitch deck
 
-## Dependencies
-### Core Framework
-- FastAPI 0.104.0+ for API framework
-- Uvicorn 0.24.0+ for ASGI server
-- Prisma 0.10.0+ for database ORM
+**Request:**
+```multipart/form-data
+- file: PDF/PPTX/DOCX/TXT (max 10MB)
+- pitch_title: string
+- description: string (optional)
+- user_query: string (AI analysis prompt)
+```
 
-### AI & ML
-- OpenAI 1.3.0+ for language models
-- LangChain 0.0.335+ for AI orchestration
-- LangGraph 0.0.20+ for workflow management
-- Instructor 1.0.0+ for structured outputs
+**Response:**
+```json
+{
+  "pitch_id": "uuid",
+  "status": "completed",
+  "scores": {
+    "overall_score": 85,
+    "clarity_score": 90,
+    "market_differentiation_score": 80,
+    ...
+  },
+  "feedback": {
+    "strengths": ["..."],
+    "weaknesses": ["..."],
+    "suggestions": ["..."],
+    "elevator_pitch": "..."
+  },
+  "investor_questions": [...]
+}
+```
 
-### Document Processing
-- PyPDF2 3.0.1+ for PDF processing
-- python-docx 1.1.0+ for Word documents
-- python-pptx 0.6.23+ for PowerPoint files
-- pdfplumber 0.10.0+ for advanced PDF extraction
+## 🚦 Development Workflow
 
-## License
-MIT License - See LICENSE file for details
+1. **Local Development**
+   ```bash
+   # Backend hot-reload
+   cd backend && python main.py
+   
+   # Frontend with hot-reload
+   cd frontend && npm run dev
+   ```
+
+2. **Database Migrations**
+   ```bash
+   npx prisma migrate dev --name your_migration_name
+   ```
+
+3. **Type Generation**
+   ```bash
+   npx prisma generate
+   ```
+
+## 🤝 Contributing
+
+We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+
+### Areas for Contribution
+- 🧪 Add more analysis dimensions
+- 🌍 Internationalization support
+- 📱 Mobile app development
+- 🔌 Integration with pitch platforms
+
+## 📄 License
+
+MIT License - see [LICENSE](LICENSE) file for details.
+
+## 🙏 Acknowledgments
+
+Built with ❤️ for founders by founders, powered by:
+- [LangGraph](https://github.com/langchain-ai/langgraph) for agent orchestration
+- [OpenAI](https://openai.com) for language models
+- [Next.js](https://nextjs.org) for the frontend framework
+- [FastAPI](https://fastapi.tiangolo.com) for the backend API
+
+---
+
+<p align="center">
+  <strong>Ready to perfect your pitch?</strong><br>
+  <a href="http://localhost:3000">🚀 Start Analyzing Now</a>
+</p>
