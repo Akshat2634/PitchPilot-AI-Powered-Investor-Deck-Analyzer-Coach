@@ -10,31 +10,28 @@
 
 PitchPilot is an enterprise-grade AI platform that helps founders perfect their investor pitch decks. Using a sophisticated **multi-agent AI system**, it provides comprehensive analysis, actionable feedback, and investor-perspective insights to maximize your chances of securing funding.
 
-<img width="1347" alt="Screenshot 2025-06-05 at 11 05 23 PM" src="https://github.com/user-attachments/assets/a5ff5402-8258-4b15-b946-17efd4b2a2ac" />
-
+<img width="1347" alt="Screenshot 2025-06-05 at 11 05 23 PM" src="https://github.com/user-attachments/assets/a5ff5402-8258-4b15-b946-17efd4b2a2ac" />
 
 ### 🤖 Multi-Agent Orchestration
 
-<img width="1347" alt="Screenshot 2025-06-05 at 11 05 37 PM" src="https://github.com/user-attachments/assets/6ce777ae-1357-4dde-b6f0-da8023018836" />
+<img width="1347" alt="Screenshot 2025-06-05 at 11 05 37 PM" src="https://github.com/user-attachments/assets/6ce777ae-1357-4dde-b6f0-da8023018836" />
 
+Our LangGraph-powered system employs **3 specialized AI agents** working in concert:
 
-Our LangGraph-powered system employs **4 specialized AI agents** working in concert:
-
-1. **📊 Analysis Agent** - Deep-dives into your pitch structure, narrative flow, and completeness
-2. **💯 Scoring Agent** - Evaluates across 10+ dimensions using VC best practices
-3. **💡 Feedback Agent** - Provides specific, actionable improvements tailored to your industry
-4. **❓ Q&A Agent** - Simulates investor questions to prepare you for pitch meetings
+1. **🧠 Supervisor Agent** - OpenAI-powered workflow orchestrator that intelligently routes tasks between agents
+2. **📊 Analysis Agent** - Deep-dives into your pitch structure, narrative flow, and completeness using VC frameworks
+3. **💯 Scoring Agent** - Evaluates across 5 key dimensions: clarity, differentiation, traction, scalability, and overall rating
 
 ## ✨ Core Features
 
 ### For Founders
-- 🎯 **Intelligent Analysis** - Get VC-grade feedback in seconds, not weeks
-- 📈 **Comprehensive Scoring** - Know exactly where your pitch stands (0-100 scale)
-- 💬 **Investor Q&A Simulation** - Prepare for tough questions before they're asked
+- **Intelligent Analysis** - Get VC-grade feedback in seconds, not weeks
+- 📈 **Comprehensive Scoring** - Know exactly where your pitch stands (0-10 scale)
+- 💬 **Smart Workflow Routing** - AI supervisor determines what analysis you need based on your query
 - 📄 **Multi-Format Support** - Upload PDF, PPTX, DOCX, or TXT files
 - 🎨 **Beautiful Dashboard** - Modern UI to visualize your pitch performance
 
-<img width="1347" alt="Screenshot 2025-06-05 at 11 05 51 PM" src="https://github.com/user-attachments/assets/94d362cd-5a77-454a-a509-916501130f42" />
+<img width="1347" alt="Screenshot 2025-06-05 at 11 05 51 PM" src="https://github.com/user-attachments/assets/94d362cd-5a77-454a-a509-916501130f42" />
 
 ### Technical Excellence
 - ⚡ **Real-time Processing** - Async architecture for lightning-fast analysis
@@ -48,14 +45,11 @@ Our LangGraph-powered system employs **4 specialized AI agents** working in conc
 graph LR
     A[Frontend - Next.js] --> B[FastAPI Backend]
     B --> C[LangGraph Orchestrator]
-    C --> D[Analysis Agent]
-    C --> E[Scoring Agent]
-    C --> F[Feedback Agent]
-    C --> G[Q&A Agent]
-    D --> H[OpenAI]
-    E --> H
-    F --> H
-    G --> H
+    C --> D[Supervisor Agent]
+    D --> E[Analysis Agent]
+    D --> F[Scoring Agent]
+    E --> G[OpenAI]
+    F --> G
 ```
 
 ## 🚀 Quick Start
@@ -78,8 +72,9 @@ python -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
 pip install -r backend/requirements.txt
 
-# Setup Node.js dependencies
-npm install
+# Setup Node.js dependencies (using pnpm)
+npm install -g pnpm
+pnpm install
 ```
 
 ### 2️⃣ Environment Configuration
@@ -93,6 +88,8 @@ DIRECT_URL="postgresql://user:password@localhost:5432/pitchpilot"
 
 # OpenAI
 OPENAI_API_KEY="sk-..."
+OPENAI_MODEL="gpt-4o-mini"
+OPENAI_MODEL_SUPERVISOR="gpt-4o-mini"
 
 # Supabase
 NEXT_PUBLIC_SUPABASE_URL="https://xxx.supabase.co"
@@ -128,7 +125,7 @@ pnpm run dev
 
 ```
 PitchPilot/
-├── 🎨 frontend/                 # Next.js 15 React application
+├── 🎨 frontend/                 # Next.js 15.3.3 React application
 │   ├── src/
 │   │   ├── app/                # App router pages
 │   │   ├── components/         # React components
@@ -140,10 +137,21 @@ PitchPilot/
 │   ├── app/
 │   │   ├── ai/               # Multi-agent system
 │   │   │   ├── agents.py     # Agent implementations
-│   │   │   └── pitch_graph.py # LangGraph workflows
+│   │   │   ├── pitch_graph.py # LangGraph workflows
+│   │   │   └── config.py     # AI configuration
 │   │   ├── api/              # API endpoints
+│   │   │   ├── api.py        # FastAPI app configuration
+│   │   │   └── routers/      # Route handlers
+│   │   │       └── pitch_api.py
+│   │   ├── config/           # Application configuration
+│   │   │   ├── prisma_client.py
+│   │   │   └── logging_config.py
 │   │   ├── schemas/          # Pydantic models
+│   │   │   └── pitch_schema.py
 │   │   └── services/         # Business logic
+│   │       ├── db_actions.py
+│   │       ├── file_service.py
+│   │       └── supabase_connection.py
 │   └── main.py               # Application entry
 │
 └── 📊 prisma/                  # Database schema
@@ -152,57 +160,57 @@ PitchPilot/
 
 ## 🤖 The AI Agents Explained
 
-<img width="1347" alt="Screenshot 2025-06-05 at 11 05 48 PM" src="https://github.com/user-attachments/assets/51742024-1637-4784-9de8-0dbdffa00ec0" />
+<img width="1347" alt="Screenshot 2025-06-05 at 11 05 48 PM" src="https://github.com/user-attachments/assets/51742024-1637-4784-9de8-0dbdffa00ec0" />
 
+### 🧠 Supervisor Agent
+- **OpenAI-powered workflow orchestrator**
+- Analyzes user queries to determine optimal agent routing
+- Implements smart fallback logic for robust operation
+- Routes between analysis and scoring based on user needs
 
 ### 🔍 Analysis Agent
-Examines your pitch deck for:
-- Problem-solution fit clarity
-- Market opportunity presentation
-- Team credibility signals
-- Business model viability
+Examines your pitch deck using VC frameworks for:
+- **Problem-solution fit clarity** using Y Combinator standards
+- **Market opportunity presentation** with a16z evaluation criteria
+- **Team credibility signals** based on top-tier VC best practices
+- **Business model viability** assessment
 
 ### 📊 Scoring Agent
-Rates your pitch on:
-- **Clarity** (0-100): How well you communicate your idea
-- **Market Differentiation** (0-100): Your competitive advantage
-- **Traction Evidence** (0-100): Proof of concept/growth
-- **Scalability** (0-100): Growth potential
-- **Team Strength** (0-100): Founder-market fit
+Provides quantitative evaluation across 5 key dimensions:
+- **Clarity** (0-10): How well you communicate your idea
+- **Differentiation** (0-10): Your competitive advantage strength
+- **Traction** (0-10): Proof of concept/growth evidence
+- **Scalability** (0-10): Growth and expansion potential
+- **Overall** (0-10): Comprehensive pitch strength
 
-### 💡 Feedback Agent
-Provides:
-- Specific improvement suggestions
-- Industry-tailored recommendations
-- Before/after examples
-- Priority action items
-
-### ❓ Q&A Agent
-Generates:
-- Top 10 likely investor questions
-- Difficulty ratings (Easy/Medium/Hard)
-- Suggested answer frameworks
-- Red flag identifications
+### 🎯 Q&A Simulation Agent
+Generates mock investor questions from your deck:
+- **Coming Soon** - Intelligent question generation based on your pitch content
+- Simulates real investor meeting scenarios
+- Helps you prepare for tough questions before the actual pitch
+- Identifies potential weak spots that investors might probe
 
 ## 🛠️ Tech Stack
 
 ### Frontend
 - **Framework**: Next.js 15.3.3 with App Router
-- **UI**: React 19 + Tailwind CSS
-- **Language**: TypeScript
-- **Icons**: Lucide React
+- **UI**: React 19 + Tailwind CSS 4
+- **Language**: TypeScript 5
+- **Icons**: Lucide React 0.513.0
+- **Package Manager**: pnpm
 
 ### Backend
-- **API**: FastAPI with async/await
-- **AI Orchestration**: LangGraph + LangChain
-- **LLM**: OpenAI GPT-4
-- **Database**: PostgreSQL + Prisma ORM
-- **Storage**: Supabase Storage
+- **API**: FastAPI 0.104.0+ with async/await
+- **AI Orchestration**: LangGraph 0.0.20+ + LangChain 0.0.335+
+- **LLM**: OpenAI 1.3.0+ (GPT-4)
+- **Database**: PostgreSQL + Prisma ORM 0.10.0+
+- **Storage**: Supabase 2.0.0+
 
-### DevOps
-- **Logging**: Color-coded console output
-- **Testing**: Pytest + Jest
-- **API Docs**: Auto-generated Swagger/ReDoc
+### Document Processing
+- **PDF**: PyPDF2 3.0.1+ & pdfplumber 0.10.0+
+- **Word**: python-docx 1.1.0+
+- **PowerPoint**: python-pptx 0.6.23+
+- **Structured Output**: instructor 1.0.0+
 
 ## 📚 API Reference
 
@@ -214,29 +222,29 @@ Upload and analyze a pitch deck
 **Request:**
 ```multipart/form-data
 - file: PDF/PPTX/DOCX/TXT (max 10MB)
-- pitch_title: string
-- description: string (optional)
-- user_query: string (AI analysis prompt)
+- title: string (pitch title)
+- description: string (optional pitch description)
+- user_query: string (AI analysis prompt - what you want analyzed)
 ```
 
 **Response:**
 ```json
 {
-  "pitch_id": "uuid",
-  "status": "completed",
-  "scores": {
-    "overall_score": 85,
-    "clarity_score": 90,
-    "market_differentiation_score": 80,
-    ...
-  },
   "feedback": {
-    "strengths": ["..."],
-    "weaknesses": ["..."],
-    "suggestions": ["..."],
-    "elevator_pitch": "..."
+    "overall_feedback": "Your pitch demonstrates...",
+    "strengths": "Strong market opportunity...",
+    "weaknesses": "Limited traction evidence...",
+    "opportunities": "Consider expanding...",
+    "threats": "Potential competitive risks...",
+    "suggestions": "Prioritized improvement steps..."
   },
-  "investor_questions": [...]
+  "score": {
+    "clarity": 8.5,
+    "differentiation": 7.2,
+    "traction": 6.8,
+    "scalability": 8.0,
+    "overall": 7.6
+  }
 }
 ```
 
@@ -260,10 +268,6 @@ Upload and analyze a pitch deck
    ```bash
    npx prisma generate
    ```
-
-## 📄 License
-
-MIT License - see [LICENSE](LICENSE) file for details.
 
 ## 🙏 Acknowledgments
 
