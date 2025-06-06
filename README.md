@@ -10,7 +10,13 @@
 
 PitchPilot is an enterprise-grade AI platform that helps founders perfect their investor pitch decks. Using a sophisticated **multi-agent AI system**, it provides comprehensive analysis, actionable feedback, and investor-perspective insights to maximize your chances of securing funding.
 
+<img width="1347" alt="Screenshot 2025-06-05 at 11 05 23 PM" src="https://github.com/user-attachments/assets/a5ff5402-8258-4b15-b946-17efd4b2a2ac" />
+
+
 ### 🤖 Multi-Agent Orchestration
+
+<img width="1347" alt="Screenshot 2025-06-05 at 11 05 37 PM" src="https://github.com/user-attachments/assets/6ce777ae-1357-4dde-b6f0-da8023018836" />
+
 
 Our LangGraph-powered system employs **4 specialized AI agents** working in concert:
 
@@ -27,6 +33,8 @@ Our LangGraph-powered system employs **4 specialized AI agents** working in conc
 - 💬 **Investor Q&A Simulation** - Prepare for tough questions before they're asked
 - 📄 **Multi-Format Support** - Upload PDF, PPTX, DOCX, or TXT files
 - 🎨 **Beautiful Dashboard** - Modern UI to visualize your pitch performance
+
+<img width="1347" alt="Screenshot 2025-06-05 at 11 05 51 PM" src="https://github.com/user-attachments/assets/94d362cd-5a77-454a-a509-916501130f42" />
 
 ### Technical Excellence
 - ⚡ **Real-time Processing** - Async architecture for lightning-fast analysis
@@ -143,6 +151,9 @@ PitchPilot/
 ```
 
 ## 🤖 The AI Agents Explained
+
+<img width="1347" alt="Screenshot 2025-06-05 at 11 05 48 PM" src="https://github.com/user-attachments/assets/51742024-1637-4784-9de8-0dbdffa00ec0" />
+
 
 ### 🔍 Analysis Agent
 Examines your pitch deck for:
