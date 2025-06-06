@@ -73,6 +73,7 @@ source venv/bin/activate  # On Windows: venv\Scripts\activate
 pip install -r backend/requirements.txt
 
 # Setup Node.js dependencies (using pnpm)
+cd frontend
 npm install -g pnpm
 pnpm install
 ```
