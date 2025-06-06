@@ -29,7 +29,7 @@ Our LangGraph-powered system employs **3 specialized AI agents** working in conc
 - 📈 **Comprehensive Scoring** - Know exactly where your pitch stands (0-10 scale)
 - 💬 **Smart Workflow Routing** - AI supervisor determines what analysis you need based on your query
 - 📄 **Multi-Format Support** - Upload PDF, PPTX, DOCX, or TXT files
-- 🎨 **Beautiful Dashboard** - Modern UI to visualize your pitch performance
+- 📊 **Professional Dashboard** - Modern UI to visualize your pitch performance
 
 <img width="1347" alt="Screenshot 2025-06-05 at 11 05 51 PM" src="https://github.com/user-attachments/assets/94d362cd-5a77-454a-a509-916501130f42" />
 
