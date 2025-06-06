@@ -1,20 +1,49 @@
+# Dependencies
+node_modules/
+package-lock.json
+pnpm-lock.yaml
+
+# Next.js
+.next/
+out/
+build/
+
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local 
+.env.production.local
+
 # Python
 __pycache__/
 *.py[cod]
-.env
+*.pyo
 .venv/
 venv/
 ENV/
 
-# Node/Prisma
-node_modules/
-.prisma/
+# Database
+*.db
+*.sqlite
+*.sqlite3
+.prisma/migrations/
 
-# IDE
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+
+# IDE & OS
 .vscode/
 .idea/
 .DS_Store
+Thumbs.db
+
+# Cache
+.npm
+.eslintcache
+.pytest_cache/
 
 # Project specific
-*.log
-.pytest_cache/ 
+uploads/ 
