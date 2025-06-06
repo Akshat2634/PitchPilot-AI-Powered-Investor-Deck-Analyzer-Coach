@@ -44,7 +44,7 @@ graph LR
     C --> E[Scoring Agent]
     C --> F[Feedback Agent]
     C --> G[Q&A Agent]
-    D --> H[OpenAI GPT-4]
+    D --> H[OpenAI]
     E --> H
     F --> H
     G --> H
@@ -111,7 +111,7 @@ python main.py
 
 # Terminal 2: Start the frontend
 cd frontend
-npm run dev
+pnpm run dev
 ```
 
 🎉 **Visit [http://localhost:3000](http://localhost:3000) to start analyzing!**
@@ -237,7 +237,7 @@ Upload and analyze a pitch deck
    cd backend && python main.py
    
    # Frontend with hot-reload
-   cd frontend && npm run dev
+   cd frontend && pnpm run dev
    ```
 
 2. **Database Migrations**
@@ -249,16 +249,6 @@ Upload and analyze a pitch deck
    ```bash
    npx prisma generate
    ```
-
-## 🤝 Contributing
-
-We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
-
-### Areas for Contribution
-- 🧪 Add more analysis dimensions
-- 🌍 Internationalization support
-- 📱 Mobile app development
-- 🔌 Integration with pitch platforms
 
 ## 📄 License
 
