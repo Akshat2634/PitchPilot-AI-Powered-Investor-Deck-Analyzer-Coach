@@ -79,7 +79,7 @@ pnpm install
 
 ### 2️⃣ Environment Configuration
 
-Create `.env` in the root directory:
+Create `.env` in the backend folder:
 
 ```env
 # Database
@@ -92,10 +92,17 @@ OPENAI_MODEL="gpt-4.1-mini"
 OPENAI_MODEL_SUPERVISOR="gpt-4.1"
 
 # Supabase
-NEXT_PUBLIC_SUPABASE_URL="https://xxx.supabase.co"
-NEXT_PUBLIC_SUPABASE_ANON_KEY="xxx"
-SUPABASE_SERVICE_ROLE_KEY="xxx"
+SUPABASE_URL="https://xxx.supabase.co"
+SUPABASE_KEY="xxx"
 ```
+
+Create .env in the frontend folder
+
+```env
+NEXT_PUBLIC_API_URL=http://localhost:8000
+NEXT_PUBLIC_APP_NAME=PitchPilot
+```
+
 
 ### 3️⃣ Database Setup
 
