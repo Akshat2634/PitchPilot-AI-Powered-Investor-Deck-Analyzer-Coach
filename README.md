@@ -55,7 +55,7 @@ graph LR
 ## 🚀 Quick Start
 
 ### Prerequisites
-- Python 3.8+ & Node.js 16+
+- Python 3.10+ & Node.js 16+
 - PostgreSQL database
 - OpenAI API key
 - Supabase account (for storage)
