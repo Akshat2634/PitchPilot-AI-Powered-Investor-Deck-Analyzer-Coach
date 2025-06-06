@@ -88,8 +88,8 @@ DIRECT_URL="postgresql://user:password@localhost:5432/pitchpilot"
 
 # OpenAI
 OPENAI_API_KEY="sk-..."
-OPENAI_MODEL="gpt-4o-mini"
-OPENAI_MODEL_SUPERVISOR="gpt-4o-mini"
+OPENAI_MODEL="gpt-4.1-mini"
+OPENAI_MODEL_SUPERVISOR="gpt-4.1"
 
 # Supabase
 NEXT_PUBLIC_SUPABASE_URL="https://xxx.supabase.co"
@@ -202,7 +202,7 @@ Generates mock investor questions from your deck:
 ### Backend
 - **API**: FastAPI 0.104.0+ with async/await
 - **AI Orchestration**: LangGraph 0.0.20+ + LangChain 0.0.335+
-- **LLM**: OpenAI 1.3.0+ (GPT-4)
+- **LLM**: OpenAI 1.3.0+
 - **Database**: PostgreSQL + Prisma ORM 0.10.0+
 - **Storage**: Supabase 2.0.0+
 
