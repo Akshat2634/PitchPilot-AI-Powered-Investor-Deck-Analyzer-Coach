@@ -76,7 +76,7 @@ const PitchPilotEnterprise = () => {
     { number: "95%", label: "Agent Accuracy", description: "Multi-agent precision rate" },
     { number: "3x", label: "Faster Processing", description: "Through parallel agent execution" },
     { number: "500+", label: "Successful Pitches", description: "Refined by our agent network" },
-    { number: "5", label: "Specialized Agents", description: "Working in orchestrated workflows" }
+    { number: "4", label: "Specialized Agents", description: "Working in orchestrated workflows" }
   ];
 
   const testimonials = [
@@ -122,11 +122,7 @@ const PitchPilotEnterprise = () => {
             </div>
 
             {/* Desktop Navigation */}
-            <div className="hidden lg:flex items-center space-x-8">
-              <a href="#features" className="text-slate-300 hover:text-white transition-colors duration-200">Features</a>
-              <a href="#pricing" className="text-slate-300 hover:text-white transition-colors duration-200">Pricing</a>
-              <a href="#about" className="text-slate-300 hover:text-white transition-colors duration-200">About</a>
-              <button className="px-4 py-2 text-slate-300 hover:text-white transition-colors duration-200">Sign In</button>
+            <div className="hidden lg:flex items-center">
               <button 
                 onClick={() => router.push('/upload')}
                 className="px-6 py-2 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg hover:from-blue-600 hover:to-purple-700 transition-all duration-200 transform hover:scale-105"
@@ -147,11 +143,7 @@ const PitchPilotEnterprise = () => {
           {/* Mobile Navigation */}
           {isMenuOpen && (
             <div className="lg:hidden absolute top-16 left-0 right-0 bg-slate-900/95 backdrop-blur-xl border-b border-slate-800/50 p-6">
-              <div className="flex flex-col space-y-4">
-                <a href="#features" className="text-slate-300 hover:text-white transition-colors duration-200">Features</a>
-                <a href="#pricing" className="text-slate-300 hover:text-white transition-colors duration-200">Pricing</a>
-                <a href="#about" className="text-slate-300 hover:text-white transition-colors duration-200">About</a>
-                <button className="text-left text-slate-300 hover:text-white transition-colors duration-200">Sign In</button>
+              <div className="flex justify-center">
                 <button 
                   onClick={() => router.push('/upload')}
                   className="px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg hover:from-blue-600 hover:to-purple-700 transition-all duration-200"
@@ -252,11 +244,11 @@ const PitchPilotEnterprise = () => {
       {/* Features Section */}
       <section id="features" className="py-32 px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-20 animate-on-scroll">
-            <h2 className="text-4xl lg:text-5xl font-bold mb-6 bg-gradient-to-r from-white to-slate-300 bg-clip-text text-transparent">
+          <div className="text-center mb-20 animate-on-scroll px-4">
+            <h2 className="text-4xl lg:text-5xl font-bold mb-6 bg-gradient-to-r from-white to-slate-300 bg-clip-text text-transparent leading-tight">
               Multi-Agent AI Architecture
             </h2>
-            <p className="text-xl text-slate-400 max-w-3xl mx-auto">
+            <p className="text-xl text-slate-400 max-w-4xl mx-auto leading-relaxed px-2">
               Orchestrated AI agents powered by LangGraph work together to deliver comprehensive pitch analysis
             </p>
           </div>
