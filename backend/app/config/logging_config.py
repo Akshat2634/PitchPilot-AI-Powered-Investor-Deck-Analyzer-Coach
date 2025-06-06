@@ -47,21 +47,7 @@ def setup_logging():
         )
         console_handler.setFormatter(formatter)
         
-        # Configure root logger
+        # Configure root logger to handle all logging
         root_logger.setLevel(logging.INFO)
         root_logger.addHandler(console_handler)
-        
-        # Configure specific loggers
-        loggers = [
-            'app',
-            'app.services',
-            'app.api',
-            'app.core',
-            'app.ai',
-            '__main__'
-        ]
-        
-        for logger_name in loggers:
-            logger = logging.getLogger(logger_name)
-            logger.setLevel(logging.INFO)
-            logger.propagate = True  # Allow propagation to root logger 
+        root_logger.propagate = True

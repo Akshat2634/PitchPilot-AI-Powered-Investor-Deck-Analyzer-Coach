@@ -17,12 +17,20 @@ class FileType(str, Enum):
     PPTX = "pptx"
     DOCX = "docx"
     TXT = "txt"
+    
+    
+class PitchAction(str, Enum):
+    ANALYSIS = "analysis"
+    SCORING = "scoring"
+    COMPLETE = "complete"
+
 
 # Request Models
 class PitchCreate(BaseModel):
     title: str
     description: Optional[str] = None
     file_type: Optional[FileType] = None
+    file_content: Optional[str] = None
 
 # Response Models
 class PitchResponse(BaseModel):
@@ -91,7 +99,8 @@ class PitchData(BaseModel):
     Pydantic model for pitch data.
     """
     pitch_text: str = Field(default="", description="Extracted text of the the elevator pitch")
-    action: Literal["analysis", "scoring", "complete"] = Field(..., description="Requested action: analysis, scoring, or complete")
+    user_query: Optional[str] = Field(default=None, description="User's specific query or request for the pitch analysis")
+    # action: Literal["analysis", "scoring", "complete"] = Field(..., description="Requested action: analysis, scoring, or complete")
     
 class NextAgentResponse(BaseModel):
     agent_name: str = Field(default="", description="The name of the next agent to call (pitch_analysis_agent or score_pitch_agent)")
@@ -100,7 +109,7 @@ class WorkflowClassifier(BaseModel):
     """
     Pydantic model for workflow classification.
     """
-    workflow_stage: Literal["analysis", "scoring", "complete"] = Field(
+    workflow_stage: PitchAction = Field(
         ...,
         description="Classify the current workflow stage: 'analysis' if feedback is needed, 'scoring' if score is needed, 'complete' if the workflow is complete"
     )
@@ -121,3 +130,4 @@ class State(MessagesState):
     score: Optional[ScoreModel] = None
     workflow_stage: Optional[str] = None
     next_step: Optional[str] = None
+    user_query: Optional[str] = None

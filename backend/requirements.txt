@@ -13,3 +13,8 @@ pydantic>=2.0.0
 pydantic-settings>=2.0.0
 uvicorn>=0.24.0
 prisma>=0.10.0
+# Text extraction libraries
+PyPDF2>=3.0.1
+python-docx>=1.1.0
+python-pptx>=0.6.23
+pdfplumber>=0.10.0

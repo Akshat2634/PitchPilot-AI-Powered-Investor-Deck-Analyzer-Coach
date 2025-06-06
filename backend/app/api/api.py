@@ -45,9 +45,7 @@ async def root():
         "message": "Welcome to the AI-Powered Investor Pitch Analyzer API",
         "version": "0.1.0",
         "endpoints": [
-            {"path": "/api/evaluate-pitch", "method": "POST", "description": "Upload and analyze a pitch deck"},
-            {"path": "/api/evaluate-pitch/{pitch_id}", "method": "GET", "description": "Get evaluation results"},
-            {"path": "/api/simulate-QnA/{pitch_id}", "method": "POST", "description": "Generate investor questions"},
-            {"path": "/api/simulate-QnA/{pitch_id}", "method": "GET", "description": "Get generated investor questions"}
+            {"path": "/evaluate-pitch", "method": "POST", "description": "Upload and analyze a pitch deck"},
+            {"path": "/health", "method": "GET", "description": "Check the health of the API"}
         ]
     }
