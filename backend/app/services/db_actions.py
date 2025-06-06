@@ -1,12 +1,13 @@
 from app.config.prisma_client import get_prisma
 from app.schemas.pitch_schema import PitchCreate, PitchStatus, FeedbackModel, ScoreModel
 import logging
+import json
 
 logger = logging.getLogger(__name__)
 
 class DatabaseActions:
     def __init__(self):
-        self.prisma = get_prisma()
+        pass
 
     async def create_pitch(self, pitch_data: PitchCreate, file_path: str):
         """
@@ -19,7 +20,7 @@ class DatabaseActions:
         Returns:
             The created pitch record
         """
-        async with self.prisma as prisma:
+        async with get_prisma() as prisma:
             new_pitch = await prisma.pitch.create(
                 data={
                     "title": pitch_data.title,
@@ -42,7 +43,7 @@ class DatabaseActions:
         Returns:
             The pitch record
         """
-        async with self.prisma as prisma:
+        async with get_prisma() as prisma:
             pitch = await prisma.pitch.find_unique(
                 where={"id": pitch_id},
                 include={
@@ -61,7 +62,7 @@ class DatabaseActions:
             pitch_id: The ID of the pitch to update
             status: The new status to set
         """
-        async with self.prisma as prisma:
+        async with get_prisma() as prisma:
             updated_pitch = await prisma.pitch.update(
                 where={"id": pitch_id},
                 data={"status": status}
@@ -69,7 +70,7 @@ class DatabaseActions:
             logger.info(f"Updated pitch {pitch_id} status to: {status}")
             return updated_pitch
         
-    async def update_pitch_feedback_and_score(self, pitch_id: str, feedback: FeedbackModel=None, score: ScoreModel = None):
+    async def update_pitch_feedback_and_score(self, pitch_id: str, feedback: FeedbackModel=None, score: ScoreModel = None, pitch_content: str = None):
         """
         Update or create feedback for a pitch record in the database.
         
@@ -77,42 +78,57 @@ class DatabaseActions:
             pitch_id: The ID of the pitch to update feedback for
             feedback: The feedback data to store
             score: The score data to store
+            pitch_content: The elevator pitch content to store
         
         Returns:
             The updated/created feedback record
         """
-        async with self.prisma as prisma:
+        async with get_prisma() as prisma:
             # Prepare the data to update/create
             feedback_data = {}
             
+            if pitch_content:
+                feedback_data["elevatorPitch"] = pitch_content
+            
             if score:
                 feedback_data["overallScore"] = score.overall
-                feedback_data["scores"] = {
-                    "clarity": {"score": score.clarity, "explanation": ""},
-                    "differentiation": {"score": score.differentiation, "explanation": ""},
-                    "traction": {"score": score.traction, "explanation": ""},
-                    "scalability": {"score": score.scalability, "explanation": ""}
-                }
+                feedback_data["scores"] = json.dumps({
+                    "clarity": {"score": score.clarity},
+                    "differentiation": {"score": score.differentiation},
+                    "traction": {"score": score.traction},
+                    "scalability": {"score": score.scalability}
+                })
             
             if feedback:
-                feedback_data["suggestions"] = {
+                feedback_data["suggestions"] = json.dumps({
                     "overall_feedback": feedback.overall_feedback,
                     "strengths": feedback.strengths,
                     "weaknesses": feedback.weaknesses,
                     "opportunities": feedback.opportunities,
                     "threats": feedback.threats,
                     "suggestions": feedback.suggestions
-                }
+                })
             
-            # Try to update existing feedback, or create new one
-            updated_feedback = await prisma.feedback.upsert(
-                where={"pitchId": pitch_id},
-                data=feedback_data,
-                create={
-                    "pitchId": pitch_id,
-                    **feedback_data
-                }
+            # Check if feedback already exists
+            existing_feedback = await prisma.feedback.find_unique(
+                where={"pitchId": pitch_id}
             )
             
-            logger.info(f"Updated feedback for pitch {pitch_id}")
-            return updated_feedback
+            if existing_feedback:
+                # Update existing feedback
+                updated_feedback = await prisma.feedback.update(
+                    where={"pitchId": pitch_id},
+                    data=feedback_data
+                )
+                logger.info(f"Updated existing feedback for pitch {pitch_id}")
+                return updated_feedback
+            else:
+                # Create new feedback
+                new_feedback = await prisma.feedback.create(
+                    data={
+                        "pitchId": pitch_id,
+                        **feedback_data
+                    }
+                )
+                logger.info(f"Created new feedback for pitch {pitch_id}")
+                return new_feedback

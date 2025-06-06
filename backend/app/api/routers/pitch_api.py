@@ -85,7 +85,8 @@ async def evaluate_pitch(
                 await db_actions.update_pitch_feedback_and_score(
                     pitch_id=new_pitch.id,
                     feedback=None,
-                    score=evaluation_response.score
+                    score=evaluation_response.score,
+                    pitch_content=file_content
                 )
                 logger.info(f"Updated score for pitch {new_pitch.id}")
             except Exception as db_error:
