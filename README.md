@@ -19,7 +19,7 @@ PitchPilot is an enterprise-grade AI platform that helps founders perfect their 
 Our LangGraph-powered system employs **3 specialized AI agents** working in concert:
 
 1. **🧠 Supervisor Agent** - OpenAI-powered workflow orchestrator that intelligently routes tasks between agents
-2. **📊 Analysis Agent** - Deep-dives into your pitch structure, narrative flow, and completeness using VC frameworks
+2. **📊 Analysis Agent** - Deep-dives into your pitch structure, narrative flow, and completeness using VC frameworks 
 3. **💯 Scoring Agent** - Evaluates across 5 key dimensions: clarity, differentiation, traction, scalability, and overall rating
 
 ## ✨ Core Features
